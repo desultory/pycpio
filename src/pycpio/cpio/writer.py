@@ -21,10 +21,14 @@ class CPIOWriter:
         """
         Writes the CPIOData objects to the output file.
         """
+        inodes = set()
         self.logger.info(f"Writing CPIO archive to {self.output_file}")
         offset = 0
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries:
+                if entry.header.ino in inodes:
+                    raise ValueError(f"Duplicate inode: {entry.header.ino}")
+                inodes.add(entry.header.ino)
                 entry_bytes = bytes(entry)
                 padding = pad_cpio(len(entry_bytes))
                 output_bytes = entry_bytes + b'\x00' * padding

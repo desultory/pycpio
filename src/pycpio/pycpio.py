@@ -21,14 +21,14 @@ class PyCPIO:
         """
         Creates a CPIOReader object and reads the file.
         """
-        reader = CPIOReader(file_path, logger=self.logger)
+        reader = CPIOReader(file_path, logger=self.logger, _log_init=False)
         self.entries.extend(reader.entries)
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """
         Writes a CPIO archive to file.
         """
-        writer = CPIOWriter(self.entries, file_path, logger=self.logger)
+        writer = CPIOWriter(self.entries, file_path, logger=self.logger, _log_init=False)
         writer.write()
 
     def list_files(self):
