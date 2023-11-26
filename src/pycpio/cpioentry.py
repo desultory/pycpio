@@ -112,6 +112,9 @@ class CPIOEntry:
         else:
             raise ValueError("Unable to resolve mode: %s" % self.mode)
 
+        if not self.filesize and self.entry_mode not in [CPIOModes.Dir, CPIOModes.Symlink, CPIOModes.CharDev]:
+            raise ValueError("Mode cannot hav filesize of 0: %s" % self.entry_mode)
+
     def resolve_permissions(self):
         """
         Resolve the permissions field.
@@ -122,7 +125,7 @@ class CPIOEntry:
         if self.mode == 0:
             return
 
-        ignored_modes = [CPIOModes.S_IFCHR]
+        ignored_modes = [CPIOModes.CharDev]
 
         # check if any of the ignored modes are i self.modes
         if self.entry_mode in ignored_modes:
@@ -181,11 +184,17 @@ class CPIOEntry:
         """
         Returns a string representation of the object.
         """
-        out_str = "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
+        from datetime import datetime
+
+        out_str = f"[{self.ino}] "
+        out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure.__members__:
-            if attr in ['mode', 'uid', 'gid', 'nlink', 'devmajor', 'devminor', 'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
+            if attr in ['ino', 'mode', 'uid', 'gid', 'nlink', 'devmajor', 'devminor',
+                        'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
+            elif attr == 'mtime':
+                out_str += f"    {attr}: {datetime.fromtimestamp(self.mtime)}\n"
             elif attr == 'mode':
                 out_str += f"    {attr}: {oct(self.mode)}\n"
             else:

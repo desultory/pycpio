@@ -9,21 +9,21 @@ class Permissions(Enum):
     """
     Enum for CPIO file permissions.
     """
-    S_ISUID = 0o004000  # Set UID bit
-    S_ISGID = 0o002000  # Set GID
-    S_ISVTX = 0o001000  # Sticky bit
-    S_IRUSR = 0o000400  # User read
-    S_IWUSR = 0o000200  # User write
-    S_IXUSR = 0o000100  # User execute
-    S_IRGRP = 0o000040  # Group read
-    S_IWGRP = 0o000020  # Group write
-    S_IXGRP = 0o000010  # Group execute
-    S_IROTH = 0o000004  # Other read
-    S_IWOTH = 0o000002  # Other write
-    S_IXOTH = 0o000001  # Other execute
+    SUID = 0o004000  # Set UID bit
+    SGID = 0o002000  # Set GID
+    SVTX = 0o001000  # Sticky bit
+    RUSR = 0o000400  # User read
+    WUSR = 0o000200  # User write
+    XUSR = 0o000100  # User execute
+    RGRP = 0o000040  # Group read
+    WGRP = 0o000020  # Group write
+    XGRP = 0o000010  # Group execute
+    ROTH = 0o000004  # Other read
+    WOTH = 0o000002  # Other write
+    XOTH = 0o000001  # Other execute
 
 
-def print_permissions(passed_perms: set) -> str:
+def print_permissions(passed_perms: set, extended=False) -> str:
     """
     Prints the permissions in a human readable format.
     """
@@ -31,14 +31,17 @@ def print_permissions(passed_perms: set) -> str:
     for permission in Permissions:
         # Skip the setuid, setgid, and sticky bit
         if permission.value >= 0o001000:
-            continue
+            if extended:
+                out += f"{permission.name.upper()}-"
+            else:
+                continue
         # Check if the permission is in the set, if so add it to the output
         if permission in passed_perms:
-            out += permission.name[3].lower()
+            out += permission.name[0].lower()
         else:
             out += "-"
 
-        if permission.name[3].lower() == 'x':
+        if permission.name[0].lower() == 'x':
             out += " "
 
     return out.rstrip()

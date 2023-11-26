@@ -31,7 +31,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print(f'cpio {version("pycpio")}')
+        print(f'PyCPIO {version("pycpio")}')
         return
 
     if args.debug:

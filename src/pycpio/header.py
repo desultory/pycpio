@@ -47,12 +47,11 @@ class CPIOModes(Enum):
     """
     Enum for CPIO mode masks.
     """
-    S_IFMT = 0o170000  # File type mask
-    S_IFSOCK = 0o140000  # Socket
-    S_IFLNK = 0o120000  # Symbolic link
-    S_IFREG = 0o100000  # Regular file
-    S_IFBLK = 0o060000  # Block device
-    S_IFDIR = 0o040000  # Directory
-    S_IFCHR = 0o020000  # Character device
-    S_IFIFO = 0o010000  # FIFO
+    Socket = 0o140000  # Socket
+    Symlink = 0o120000  # Symbolic link
+    File = 0o100000  # Regular file
+    BlkDev = 0o060000  # Block device
+    Dir = 0o040000  # Directory
+    CharDev = 0o020000  # Character device
+    FIFO = 0o010000  # FIFO
 

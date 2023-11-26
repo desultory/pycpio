@@ -20,7 +20,7 @@ class CPIOData:
         mode = header.entry_mode
         if mode in CPIOModes:
             # Get the data type by removing the "S_" prefix
-            data_type = globals()[f'CPIO_{mode.name[2:]}']
+            data_type = globals()[f'CPIO_{mode.name}']
             logger = header.logger
             return data_type(data, header, logger=logger, *args, **kwargs)
         raise ValueError(f"Unknown CPIO entry mode: {mode}")
@@ -34,14 +34,14 @@ class CPIOData:
         return out_str
 
 
-class CPIO_IFREG(CPIOData):
+class CPIO_File(CPIOData):
     """
     Standard file object
     """
     pass
 
 
-class CPIO_IFLNK(CPIOData):
+class CPIO_Symlink(CPIOData):
     """
     Symbolic link object
     """
@@ -53,20 +53,19 @@ class CPIO_IFLNK(CPIOData):
         return f"{self.__class__.__name__}: ({self.target})"
 
 
-class CPIO_IFDIR(CPIOData):
+class CPIO_Dir(CPIOData):
     """
     Directory object
     """
     pass
 
 
-class CPIO_IFCHR(CPIOData):
+class CPIO_CharDev(CPIOData):
     """
     Character device object
     """
     def __str__(self):
         return f"{self.__class__.__name__}: ({self.header.rdevmajor}, {self.header.rdevminor})"
-
 
 
 
