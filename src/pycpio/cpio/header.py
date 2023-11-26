@@ -4,9 +4,9 @@ CPIO entry definition. Starts as just the header and then takes additional data.
 
 from zenlib.logging import loggify
 
-from pycpio.magic import CPIOMagic
 from pycpio.modes import CPIOModes
 from pycpio.permissions import Permissions, print_permissions
+from .common import pad_cpio
 
 
 @loggify
@@ -14,10 +14,13 @@ class CPIOHeader:
     """
     CPIO entry, can be initialized from a segment of header data with the total offset, for padding.
     """
-    def __init__(self, *args, **kwargs):
+    _ignore_mode_permissions = [CPIOModes.CharDev]
+
+    def __init__(self, header_structure, *args, **kwargs):
+        self.structure = header_structure
         header_data = kwargs.pop('header_data', None)
         if header_data:
-            self.logger.debug("Creating CPIOEntry from header data")
+            self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data")
@@ -28,7 +31,7 @@ class CPIOHeader:
         Increments the offset.
         """
         data = self.data[self.offset:self.offset + num_bytes]
-        self.logger.debug("Read %s bytes: %s", num_bytes, data)
+        self.logger.log(5, "Read %s bytes: %s", num_bytes, data)
         self.offset += num_bytes
         return data
 
@@ -50,26 +53,14 @@ class CPIOHeader:
         self.offset = 0  # Current offset in the data
 
         # Header processing
-        self.read_magic()  # Read the magic number to determine the structure
         self.parse_header()  # Parse the header
-        self.resolve_mode()  # Resolve the mode
-        self.resolve_permissions()  # Resolve the permissions
-
-    def read_magic(self) -> None:
-        """
-        Read the magic number and set the appropriate structure.
-        """
-        magic_bytes = self._read_bytes(6)
-
-        for magic_type in CPIOMagic:
-            magic, structure = magic_type.value
-            if magic == magic_bytes:
-                self.logger.debug("Using structure: %s", structure)
-                self.structure = structure
-                self.magic = magic_bytes
-                break
+        self.permissions = set()
+        # Don't process modes/permissions for the trailer
+        if self.mode == b'0' * 8:
+            self.entry_mode = None
         else:
-            raise ValueError("Invalid magic: %s" % magic_bytes)
+            self.resolve_mode()
+            self.resolve_permissions()
 
     def parse_header(self):
         """
@@ -77,18 +68,13 @@ class CPIOHeader:
         Sets attributes on the object.
         """
         for key, length_val in self.structure.__members__.items():
-            if key == 'magic':
-                self.logger.log(5, "Skipping magic")
-                continue
-
             length = length_val.value
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
 
             # Read the data, convert to int
-            data = int(self._read_bytes(length), 16)
-            self.logger.log(5, "Data: %s", data)
+            data = self._read_bytes(length)
 
-            if key == 'check' and data != 0:
+            if key == 'check' and data != b'0' * 8:
                 raise ValueError("Invalid check: %s" % data)
             else:
                 setattr(self, key, data)
@@ -98,13 +84,8 @@ class CPIOHeader:
         """
         Resolve the mode field.
         """
-        # Nothing to process for the trailer
-        if self.mode == 0:
-            self.entry_mode = None
-            return
-
         for mode_type in CPIOModes:
-            if (mode_type.value & self.mode) == mode_type.value:
+            if (mode_type.value & int(self.mode, 16)) == mode_type.value:
                 self.entry_mode = mode_type
                 break
         else:
@@ -117,30 +98,23 @@ class CPIOHeader:
         """
         Resolve the permissions field.
         """
-        self.permissions = set()
-
-        # Nothing to process for the trailer
-        if self.mode == 0:
-            return
-
-        ignored_modes = [CPIOModes.CharDev]
         # check if any of the ignored modes are i self.modes
-        if self.entry_mode in ignored_modes:
+        if self.entry_mode in self._ignore_mode_permissions:
             self.logger.debug("Ignoring permissions for mode: %s", self.entry_mode)
             return
 
         for perm_type in Permissions:
-            if (perm_type.value & self.mode) == perm_type.value:
+            if (perm_type.value & int(self.mode, 16)) == perm_type.value:
                 self.permissions.add(perm_type)
 
         if not self.permissions:
             raise ValueError("Unable to resolve permissions: %s" % self.mode)
 
-    def get_name(self) -> int:
+    def get_name(self):
         """
         Get the name of the file.
         """
-        name = self._read_bytes(self.namesize).decode('ascii').strip('\0')
+        name = self._read_bytes(int(self.namesize, 16)).decode('ascii').strip('\0')
 
         if not name:
             raise ValueError("Empty name")
@@ -151,12 +125,15 @@ class CPIOHeader:
         Returns the bytes representation of the object.
         """
         out_bytes = b''
+        # Get the bytes for each attribute
         for attr, value in self.structure.__members__.items():
-            data = getattr(self, attr)
-            if not isinstance(data, bytes):
-                out_bytes += data.to_bytes(value.value)
-            else:
-                out_bytes += data
+            out_bytes += getattr(self, attr)
+        # Output the name as bytes
+        out_bytes += self.name.encode('ascii')
+        # Calculate padding based on total length, and add the null terminator
+        padding = pad_cpio(len(out_bytes) + 1)
+        out_bytes += b'\0' * padding + b'\0'
+
         return out_bytes
 
     def __str__(self):
@@ -173,7 +150,7 @@ class CPIOHeader:
                         'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
             elif attr == 'mtime':
-                out_str += f"    {attr}: {datetime.fromtimestamp(self.mtime)}\n"
+                out_str += f"    {attr}: {datetime.fromtimestamp(int(self.mtime, 16))}\n"
             elif attr == 'mode':
                 out_str += f"    {attr}: {oct(self.mode)}\n"
             else:
