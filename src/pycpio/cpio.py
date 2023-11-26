@@ -1,11 +1,12 @@
-__version__ = "0.0.1"
-
 from zenlib.logging import loggify
 
 from pathlib import Path
 from typing import Union
+from importlib.metadata import version
 
 from .cpioentry import CPIOEntry
+
+__version__ = version(__package__)
 
 
 @loggify
@@ -32,7 +33,7 @@ class PyCPIO:
         while offset < len(self.raw_cpio):
             self.logger.debug("At offset: %s" % offset)
             header_data = self.raw_cpio[offset:offset + 110]
-            entry = CPIOEntry(header_data, total_offset=offset, logger=self.logger, _log_init=False)
+            entry = CPIOEntry(header_data=header_data, total_offset=offset, logger=self.logger, _log_init=False)
             offset += 110
 
             filename_data = self.raw_cpio[offset:offset + entry.namesize]
@@ -42,7 +43,8 @@ class PyCPIO:
             if filesize := entry.filesize:
                 file_data = self.raw_cpio[offset:offset + filesize]
                 entry.add_data(file_data)
-                offset += entry.read_contents()
+
+            offset += entry.read_contents()
 
             if entry.name == 'TRAILER!!!':
                 break

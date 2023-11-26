@@ -5,6 +5,7 @@ from .cpio import PyCPIO
 
 from logging import getLogger, StreamHandler
 from argparse import ArgumentParser
+from importlib.metadata import version
 
 from zenlib.logging import ColorLognameFormatter
 
@@ -12,7 +13,7 @@ from zenlib.logging import ColorLognameFormatter
 def main():
     logger = getLogger(__name__)
     handler = StreamHandler()
-    handler.setFormatter(ColorLognameFormatter())
+    handler.setFormatter(ColorLognameFormatter('%(levelname)s | %(name)-42s | %(message)s'))
     logger.addHandler(handler)
 
     parser = ArgumentParser(prog='cpio')
@@ -25,7 +26,13 @@ def main():
     parser.add_argument('-d', '--debug', action='store_true', help='Debug output')
     parser.add_argument('-dd', '--verbose', action='store_true', help='Verbose output')
 
+    parser.add_argument('-v', '--version', action='store_true', help='Print version and exit')
+
     args = parser.parse_args()
+
+    if args.version:
+        print(f'cpio {version("pycpio")}')
+        return
 
     if args.debug:
         logger.setLevel(10)

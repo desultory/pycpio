@@ -6,7 +6,7 @@ from zenlib.logging import loggify
 
 from .cpiodata import CPIOData
 from .header import CPIOMagic, CPIOModes
-from .permissions import Permissions
+from .permissions import Permissions, print_permissions
 
 
 def return_offset(func):
@@ -23,13 +23,25 @@ def return_offset(func):
 @loggify
 class CPIOEntry:
     """
-    CPIO header
+    CPIO entry, can be initialized from a segment of header data with the total offset, for padding.
     """
-    def __init__(self, header_data: bytes, total_offset: int, *args, **kwargs):
-        if len(header_data) != 110:
-            raise ValueError("Invalid header length: %s" % len(header_data))
+    def __init__(self, *args, **kwargs):
+        header_data = kwargs.pop('header_data', None)
+        total_offset = kwargs.pop('total_offset', None)
+        if header_data and total_offset is not None:
+            self.logger.debug("Creating CPIOEntry from header data")
+            self.from_bytes(header_data, total_offset)
+        else:
+            raise NotImplementedError("CPIOEntry must be initialized with header data and total offset")
 
-        self.data = header_data
+    def from_bytes(self, data: bytes, total_offset: int) -> None:
+        if hasattr(self, 'data'):
+            raise ValueError("CPIOEntry already initialized")
+
+        if len(data) != 110:
+            raise ValueError("CPIO header must be 110 bytes, got length: %s" % len(data))
+
+        self.data = data
         self.total_offset = total_offset  # Total offset in the data
         self.offset = 0  # Current offset in the data
 
@@ -90,6 +102,7 @@ class CPIOEntry:
         """
         # Nothing to process for the trailer
         if self.mode == 0:
+            self.data_mode = None
             return
 
         for mode_type in CPIOModes:
@@ -158,8 +171,11 @@ class CPIOEntry:
 
         Returns the offset to the next header.
         """
+        if self.data_mode is None:
+            self.logger.debug("No data to read")
+            return
         content_data = self.read_bytes(self.filesize, pad=True)
-        self.cpio_data = CPIOData(content_data, data_mode=self.data_mode, logger=self.logger, _log_init=False)
+        self.cpio_data = CPIOData.from_bytes(content_data, self, _log_init=False)
 
     def __str__(self):
         """
@@ -168,7 +184,7 @@ class CPIOEntry:
         out_str = "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure.__members__:
-            if attr == 'check':
+            if attr in ['mode', 'uid', 'gid', 'nlink', 'devmajor', 'devminor', 'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
             elif attr == 'mode':
                 out_str += f"    {attr}: {oct(self.mode)}\n"
@@ -178,8 +194,8 @@ class CPIOEntry:
         if hasattr(self, 'cpio_data'):
             out_str += f"    Data: {self.cpio_data}\n"
 
-        if hasattr(self, 'permissions'):
-            out_str += f"    Permissions: {self.permissions}\n"
+        out_str += f"    Owner, Group: {self.uid} {self.gid}\n"
+        out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
 
         return out_str
 
