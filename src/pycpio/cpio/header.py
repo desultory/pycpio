@@ -50,7 +50,7 @@ class CPIOHeader:
         self.offset = 0  # Current offset in the data
 
         # Header processing
-        self.read_magic()  # Read the magic number and set the appropriate structure
+        self.read_magic()  # Read the magic number to determine the structure
         self.parse_header()  # Parse the header
         self.resolve_mode()  # Resolve the mode
         self.resolve_permissions()  # Resolve the permissions
@@ -66,6 +66,7 @@ class CPIOHeader:
             if magic == magic_bytes:
                 self.logger.debug("Using structure: %s", structure)
                 self.structure = structure
+                self.magic = magic_bytes
                 break
         else:
             raise ValueError("Invalid magic: %s" % magic_bytes)
@@ -76,6 +77,10 @@ class CPIOHeader:
         Sets attributes on the object.
         """
         for key, length_val in self.structure.__members__.items():
+            if key == 'magic':
+                self.logger.log(5, "Skipping magic")
+                continue
+
             length = length_val.value
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
 
@@ -140,6 +145,19 @@ class CPIOHeader:
         if not name:
             raise ValueError("Empty name")
         self.name = name
+
+    def __bytes__(self):
+        """
+        Returns the bytes representation of the object.
+        """
+        out_bytes = b''
+        for attr, value in self.structure.__members__.items():
+            data = getattr(self, attr)
+            if not isinstance(data, bytes):
+                out_bytes += data.to_bytes(value.value)
+            else:
+                out_bytes += data
+        return out_bytes
 
     def __str__(self):
         """

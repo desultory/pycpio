@@ -46,6 +46,9 @@ def main():
     if args.input:
         c.read_cpio_file(Path(args.input))
 
+    if args.output:
+        c.write_cpio_file(Path(args.output))
+
     if args.list:
         print(c.list_files())
 

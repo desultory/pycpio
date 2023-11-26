@@ -34,6 +34,12 @@ class CPIOData:
         out_str += f"{self.__class__.__name__} "
         return out_str
 
+    def __bytes__(self):
+        """
+        Convert the data to bytes
+        """
+        return bytes(self.header) + self.data
+
 
 class CPIO_File(CPIOData):
     """

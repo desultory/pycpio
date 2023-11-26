@@ -24,6 +24,17 @@ class PyCPIO:
         reader = CPIOReader(file_path, logger=self.logger)
         self.files.extend(reader.files)
 
+    def write_cpio_file(self, file_path: Union[Path, str]):
+        """
+        Writes a CPIO archive to file.
+        """
+        with open(file_path, 'wb') as f:
+            self.logger.info("Opening file for writing: %s", file_path)
+            for file in self.files:
+                f.write(bytes(file))
+
+        self.logger.info("Wrote %d entries to: %s", len(self.files), file_path)
+
     def list_files(self):
         """
         Returns a list of files in the CPIO archive.

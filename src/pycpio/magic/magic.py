@@ -6,6 +6,7 @@ from enum import Enum
 
 
 class HEADER_NEW(Enum):
+    magic = 6
     ino = 8
     mode = 8
     uid = 8
@@ -22,6 +23,7 @@ class HEADER_NEW(Enum):
 
 
 class HEADER_OLD(Enum):
+    magic = 6
     dev = 6
     ino = 6
     mode = 6
