@@ -56,6 +56,7 @@ class CPIOEntry:
         Read the next length bytes from the data.
         """
         data = self.data[self.offset:self.offset + length]
+        self.logger.debug("Read bytes: %s", data)
         self.offset += length
         if pad:
             self.pad_offset()
@@ -68,9 +69,9 @@ class CPIOEntry:
         magic_bytes = self.read_bytes(6)
 
         for magic_type in CPIOMagic:
-            self.logger.debug("Checking magic: %s", magic_type.value)
             magic, structure = magic_type.value
             if magic == magic_bytes:
+                self.logger.debug("Using structure: %s", structure)
                 self.structure = structure
                 break
         else:
@@ -84,17 +85,16 @@ class CPIOEntry:
         for key, length_val in self.structure.__members__.items():
             length = length_val.value
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
-            data = self.read_bytes(length)
-            self.logger.log(5, "Data: %s", data)
-            self.logger.log(5, "Parsed %s: %s", key, data)
 
-            # Convert to int
-            data = int(data, 16)
+            # Read the data, convert to int
+            data = int(self.read_bytes(length), 16)
+            self.logger.log(5, "Data: %s", data)
 
             if key == 'check' and data != 0:
                 raise ValueError("Invalid check: %s" % data)
             else:
                 setattr(self, key, data)
+                self.logger.debug("Parsed %s: %s", key, data)
 
     def resolve_mode(self):
         """
@@ -102,12 +102,12 @@ class CPIOEntry:
         """
         # Nothing to process for the trailer
         if self.mode == 0:
-            self.data_mode = None
+            self.entry_mode = None
             return
 
         for mode_type in CPIOModes:
             if (mode_type.value & self.mode) == mode_type.value:
-                self.data_mode = mode_type
+                self.entry_mode = mode_type
                 break
         else:
             raise ValueError("Unable to resolve mode: %s" % self.mode)
@@ -125,8 +125,8 @@ class CPIOEntry:
         ignored_modes = [CPIOModes.S_IFCHR]
 
         # check if any of the ignored modes are i self.modes
-        if self.data_mode in ignored_modes:
-            self.logger.debug("Ignoring permissions for mode: %s", self.data_mode)
+        if self.entry_mode in ignored_modes:
+            self.logger.debug("Ignoring permissions for mode: %s", self.entry_mode)
             return
 
         for perm_type in Permissions:
@@ -171,7 +171,7 @@ class CPIOEntry:
 
         Returns the offset to the next header.
         """
-        if self.data_mode is None:
+        if self.entry_mode is None:
             self.logger.debug("No data to read")
             return
         content_data = self.read_bytes(self.filesize, pad=True)

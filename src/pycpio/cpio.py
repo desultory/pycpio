@@ -31,31 +31,33 @@ class PyCPIO:
 
         offset = 0
         while offset < len(self.raw_cpio):
+            # Start by reading one header at a time
             self.logger.debug("At offset: %s" % offset)
             header_data = self.raw_cpio[offset:offset + 110]
             entry = CPIOEntry(header_data=header_data, total_offset=offset, logger=self.logger, _log_init=False)
             offset += 110
 
+            # Using header info, get the filename
             filename_data = self.raw_cpio[offset:offset + entry.namesize]
             entry.add_data(filename_data)
             offset += entry.get_name()
 
+            # If it's the trailer, break
+            if entry.name == 'TRAILER!!!' and not entry.entry_mode:
+                self.logger.info("Trailer detected at offset: %s" % offset)
+                break
+
+            # If there's a filesize, read the file data
             if filesize := entry.filesize:
                 file_data = self.raw_cpio[offset:offset + filesize]
                 entry.add_data(file_data)
 
+            # Attempt to read file contents, otherwise just set the data type
             offset += entry.read_contents()
-
-            if entry.name == 'TRAILER!!!':
-                break
-
-            if len(self.raw_cpio) - offset < 110:
-                if self.raw_cpio[offset:] == b'\x00' * (len(self.raw_cpio) - offset):
-                    self.logger.info("Reached end of file.")
-                else:
-                    self.logger.warning("Detected data after trailer: %s" % self.raw_cpio[offset:])
-                break
             self.files.append(entry)
+        else:
+            self.logger.warning("Reached end of file without finding trailer, offset: %s" % offset)
+            self.logger.debug("Trailing contents: %s" % self.raw_cpio[offset:])
 
     def list_files(self):
         """

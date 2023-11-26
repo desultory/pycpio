@@ -17,13 +17,13 @@ class CPIOData:
         """
         Get the data type from the header
         """
-        data_mode = header.data_mode
-        if data_mode in CPIOModes:
+        mode = header.entry_mode
+        if mode in CPIOModes:
             # Get the data type by removing the "S_" prefix
-            data_type = globals()[f'CPIO_{data_mode.name[2:]}']
+            data_type = globals()[f'CPIO_{mode.name[2:]}']
             logger = header.logger
             return data_type(data, header, logger=logger, *args, **kwargs)
-        raise ValueError(f"Unknown data mode: {data_mode}")
+        raise ValueError(f"Unknown CPIO entry mode: {mode}")
 
     def __init__(self, data: bytes, header, *args, **kwargs):
         self.data = data
