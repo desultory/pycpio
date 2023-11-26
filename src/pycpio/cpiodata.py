@@ -4,7 +4,7 @@ CPIO data objects
 
 from zenlib.logging import loggify
 
-from .header import CPIOModes
+from .cpiomodes import CPIOModes
 
 
 @loggify

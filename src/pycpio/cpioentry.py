@@ -5,7 +5,8 @@ CPIO entry definition. Starts as just the header and then takes additional data.
 from zenlib.logging import loggify
 
 from .cpiodata import CPIOData
-from .header import CPIOMagic, CPIOModes
+from .cpiomagic import CPIOMagic
+from .cpiomodes import CPIOModes
 from .permissions import Permissions, print_permissions
 
 
