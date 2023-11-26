@@ -19,6 +19,8 @@ def main():
 
     parser = ArgumentParser(prog='cpio')
     parser.add_argument('-i', '--input', help='input file')
+
+    parser.add_argument('-a', '--append', action='store', help='append to archive')
     parser.add_argument('-o', '--output', help='output file')
 
     parser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')
@@ -45,6 +47,9 @@ def main():
     c = PyCPIO(logger=logger)
     if args.input:
         c.read_cpio_file(Path(args.input))
+
+    if args.append:
+        c.append_cpio(Path(args.append))
 
     if args.output:
         c.write_cpio_file(Path(args.output))
