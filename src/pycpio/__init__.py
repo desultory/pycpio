@@ -1,1 +1,3 @@
-from .cpio import PyCPIO
+from .pycpio import PyCPIO
+
+__all__ = ['PyCPIO']

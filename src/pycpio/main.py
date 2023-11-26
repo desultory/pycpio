@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-from .cpio import PyCPIO
+from pycpio import PyCPIO
 
 from logging import getLogger, StreamHandler
 from argparse import ArgumentParser
@@ -44,7 +44,7 @@ def main():
 
     c = PyCPIO(logger=logger)
     if args.input:
-        c.read_cpio(Path(args.input))
+        c.read_cpio_file(Path(args.input))
 
     if args.list:
         print(c.list_files())

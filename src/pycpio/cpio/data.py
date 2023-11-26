@@ -4,7 +4,7 @@ CPIO data objects
 
 from zenlib.logging import loggify
 
-from .cpiomodes import CPIOModes
+from pycpio.modes import CPIOModes
 
 
 @loggify
@@ -13,7 +13,7 @@ class CPIOData:
     Generic object for CPIO data
     """
     @staticmethod
-    def from_bytes(data: bytes, header, *args, **kwargs):
+    def get_subtype(data: bytes, header, *args, **kwargs):
         """
         Get the data type from the header
         """
@@ -30,7 +30,8 @@ class CPIOData:
         self.header = header
 
     def __str__(self):
-        out_str = f"{self.__class__.__name__}: ({len(self.data)} bytes)"
+        out_str = f"\n{self.header.name}: {self.header}"
+        out_str += f"{self.__class__.__name__} "
         return out_str
 
 
@@ -38,7 +39,8 @@ class CPIO_File(CPIOData):
     """
     Standard file object
     """
-    pass
+    def __str__(self):
+        return f"{super().__str__()}({len(self.data)} bytes)"
 
 
 class CPIO_Symlink(CPIOData):
@@ -50,7 +52,7 @@ class CPIO_Symlink(CPIOData):
         self.target = self.data.decode('ascii').rstrip('\0')
 
     def __str__(self):
-        return f"{self.__class__.__name__}: ({self.target})"
+        return f"{super().__str__()}({self.target})"
 
 
 class CPIO_Dir(CPIOData):
@@ -65,7 +67,7 @@ class CPIO_CharDev(CPIOData):
     Character device object
     """
     def __str__(self):
-        return f"{self.__class__.__name__}: ({self.header.rdevmajor}, {self.header.rdevminor})"
+        return f"{super().__str__()}({self.header.rdevmajor}, {self.header.rdevminor})"
 
 
 

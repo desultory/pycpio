@@ -5,7 +5,7 @@ CPIO header definitions and parsing.
 from enum import Enum
 
 
-class CPIO_HEADER_NEW(Enum):
+class HEADER_NEW(Enum):
     ino = 8
     mode = 8
     uid = 8
@@ -21,7 +21,7 @@ class CPIO_HEADER_NEW(Enum):
     check = 8
 
 
-class CPIO_HEADER_OLD(Enum):
+class HEADER_OLD(Enum):
     dev = 6
     ino = 6
     mode = 6
@@ -35,9 +35,9 @@ class CPIO_HEADER_OLD(Enum):
     check = 6
 
 
-class CPIOMagic(Enum):
+class Magic(Enum):
     """
     Enum for CPIO magic numbers.
     """
-    NEW = (b'070701', CPIO_HEADER_NEW)
-    OLD = (b'070707', CPIO_HEADER_OLD)
+    NEW = (b'070701', HEADER_NEW)
+    OLD = (b'070707', HEADER_OLD)

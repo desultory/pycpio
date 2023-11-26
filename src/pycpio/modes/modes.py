@@ -5,7 +5,7 @@ CPIO header mode masks.
 from enum import Enum
 
 
-class CPIOModes(Enum):
+class Modes(Enum):
     """
     Enum for CPIO mode masks.
     """
@@ -16,4 +16,3 @@ class CPIOModes(Enum):
     Dir = 0o040000  # Directory
     CharDev = 0o020000  # Character device
     FIFO = 0o010000  # FIFO
-

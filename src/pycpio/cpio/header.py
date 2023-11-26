@@ -4,38 +4,42 @@ CPIO entry definition. Starts as just the header and then takes additional data.
 
 from zenlib.logging import loggify
 
-from .cpiodata import CPIOData
-from .cpiomagic import CPIOMagic
-from .cpiomodes import CPIOModes
-from .permissions import Permissions, print_permissions
-
-
-def return_offset(func):
-    """
-    Decorator to return the offset to the next header.
-    """
-    def wrapper(self, *args, **kwargs):
-        offset = self.offset
-        func(self, *args, **kwargs)
-        return self.offset - offset
-    return wrapper
+from pycpio.magic import CPIOMagic
+from pycpio.modes import CPIOModes
+from pycpio.permissions import Permissions, print_permissions
 
 
 @loggify
-class CPIOEntry:
+class CPIOHeader:
     """
     CPIO entry, can be initialized from a segment of header data with the total offset, for padding.
     """
     def __init__(self, *args, **kwargs):
         header_data = kwargs.pop('header_data', None)
-        total_offset = kwargs.pop('total_offset', None)
-        if header_data and total_offset is not None:
+        if header_data:
             self.logger.debug("Creating CPIOEntry from header data")
-            self.from_bytes(header_data, total_offset)
+            self.from_bytes(header_data)
         else:
-            raise NotImplementedError("CPIOEntry must be initialized with header data and total offset")
+            raise NotImplementedError("CPIOEntry must be initialized with header data")
 
-    def from_bytes(self, data: bytes, total_offset: int) -> None:
+    def _read_bytes(self, num_bytes: int) -> bytes:
+        """
+        Read the specified number of bytes from the data.
+        Increments the offset.
+        """
+        data = self.data[self.offset:self.offset + num_bytes]
+        self.logger.debug("Read %s bytes: %s", num_bytes, data)
+        self.offset += num_bytes
+        return data
+
+    def add_data(self, additional_data: bytes) -> None:
+        """
+        Add the file data to the object.
+        """
+        self.logger.debug("Adding data: %s", additional_data)
+        self.data += additional_data
+
+    def from_bytes(self, data: bytes) -> None:
         if hasattr(self, 'data'):
             raise ValueError("CPIOEntry already initialized")
 
@@ -43,7 +47,6 @@ class CPIOEntry:
             raise ValueError("CPIO header must be 110 bytes, got length: %s" % len(data))
 
         self.data = data
-        self.total_offset = total_offset  # Total offset in the data
         self.offset = 0  # Current offset in the data
 
         # Header processing
@@ -116,7 +119,6 @@ class CPIOEntry:
             return
 
         ignored_modes = [CPIOModes.CharDev]
-
         # check if any of the ignored modes are i self.modes
         if self.entry_mode in ignored_modes:
             self.logger.debug("Ignoring permissions for mode: %s", self.entry_mode)
@@ -129,53 +131,15 @@ class CPIOEntry:
         if not self.permissions:
             raise ValueError("Unable to resolve permissions: %s" % self.mode)
 
-    def add_data(self, additional_data: bytes) -> None:
-        """
-        Add the file data to the object.
-        """
-        self.logger.debug("Adding data: %s", additional_data)
-        self.data += additional_data
-
-    @return_offset
     def get_name(self) -> int:
         """
         Get the name of the file.
         """
-        name = self._read_bytes(self.namesize, pad=True).decode('ascii').strip('\0')
+        name = self._read_bytes(self.namesize).decode('ascii').strip('\0')
 
         if not name:
             raise ValueError("Empty name")
         self.name = name
-
-    @return_offset
-    def read_contents(self) -> int:
-        """
-        Read the contents of the cpio data to content_data.
-
-        Returns the offset to the next header.
-        """
-        if self.entry_mode is None:
-            self.logger.debug("No data to read")
-            return
-        content_data = self._read_bytes(self.filesize, pad=True)
-        self.cpio_data = CPIOData.from_bytes(content_data, self, _log_init=False)
-
-    def _read_bytes(self, length: int, pad=False) -> bytes:
-        """
-        Read the next length bytes from the data.
-        """
-        data = self.data[self.offset:self.offset + length]
-        self.logger.debug("Read bytes: %s", data)
-        self.offset += length
-
-        if pad:
-            current_offset = self.offset
-            self.logger.debug("Calculating pad offset using total offset: %s, offset: %s", self.total_offset, current_offset)
-            if pad := (current_offset + self.total_offset) % 4:
-                self.logger.debug("Pad size: %d", 4 - pad)
-                self.offset += 4 - pad
-
-        return data
 
     def __str__(self):
         """
@@ -196,9 +160,6 @@ class CPIOEntry:
                 out_str += f"    {attr}: {oct(self.mode)}\n"
             else:
                 out_str += f"    {attr}: {getattr(self, attr)}\n"
-
-        if hasattr(self, 'cpio_data'):
-            out_str += f"    Data: {self.cpio_data}\n"
 
         out_str += f"    Owner, Group: {self.uid} {self.gid}\n"
         out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
