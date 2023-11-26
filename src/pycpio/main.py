@@ -6,6 +6,7 @@ from .cpio import PyCPIO
 from logging import getLogger, StreamHandler
 from argparse import ArgumentParser
 from importlib.metadata import version
+from pathlib import Path
 
 from zenlib.logging import ColorLognameFormatter
 
@@ -43,7 +44,7 @@ def main():
 
     c = PyCPIO(logger=logger)
     if args.input:
-        c.read_cpio(args.input)
+        c.read_cpio(Path(args.input))
 
     if args.list:
         print(c.list_files())

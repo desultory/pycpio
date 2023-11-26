@@ -1,10 +1,10 @@
-from zenlib.logging import loggify
 
 from pathlib import Path
 from typing import Union
 from importlib.metadata import version
 
 from .cpioentry import CPIOEntry
+from zenlib.logging import loggify
 
 __version__ = version(__package__)
 
@@ -17,7 +17,7 @@ class PyCPIO:
     def __init__(self, *args, **kwargs):
         self.files = []
 
-    def read_cpio(self, file_path: Union[str, Path]):
+    def read_cpio(self, file_path: Union[Path, str]):
         """
         Reads a CPIO archive.
         """
@@ -26,8 +26,7 @@ class PyCPIO:
         self.logger.info("Reading CPIO archive: %s" % file_path)
         with open(file_path, 'rb') as f:
             self.raw_cpio = f.read()
-
-        self.logger.info("[%s] Read bytes: %s" % (file_path, len(self.raw_cpio)))
+            self.logger.info("[%s] Read bytes: %s" % (file_path, len(self.raw_cpio)))
 
         offset = 0
         while offset < len(self.raw_cpio):

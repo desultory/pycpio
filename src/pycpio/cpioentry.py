@@ -51,22 +51,11 @@ class CPIOEntry:
         self.resolve_mode()  # Resolve the mode
         self.resolve_permissions()  # Resolve the permissions
 
-    def read_bytes(self, length: int, pad=False) -> bytes:
-        """
-        Read the next length bytes from the data.
-        """
-        data = self.data[self.offset:self.offset + length]
-        self.logger.debug("Read bytes: %s", data)
-        self.offset += length
-        if pad:
-            self.pad_offset()
-        return data
-
     def read_magic(self) -> None:
         """
         Read the magic number and set the appropriate structure.
         """
-        magic_bytes = self.read_bytes(6)
+        magic_bytes = self._read_bytes(6)
 
         for magic_type in CPIOMagic:
             magic, structure = magic_type.value
@@ -87,7 +76,7 @@ class CPIOEntry:
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
 
             # Read the data, convert to int
-            data = int(self.read_bytes(length), 16)
+            data = int(self._read_bytes(length), 16)
             self.logger.log(5, "Data: %s", data)
 
             if key == 'check' and data != 0:
@@ -139,33 +128,23 @@ class CPIOEntry:
         if not self.permissions:
             raise ValueError("Unable to resolve permissions: %s" % self.mode)
 
-    @return_offset
-    def get_name(self) -> int:
-        """
-        Get the name of the file.
-        """
-        name = self.read_bytes(self.namesize, pad=True).decode('ascii').strip('\0')
-
-        if not name:
-            raise ValueError("Empty name")
-        self.name = name
-
-    def pad_offset(self) -> int:
-        """
-        Pad the offset to the next 4-byte boundary.
-        """
-        current_offset = self.offset
-        self.logger.debug("Calculating pad offset using total offset: %s, offset: %s", self.total_offset, current_offset)
-        if pad := (current_offset + self.total_offset) % 4:
-            self.logger.debug("Pad size: %d", 4 - pad)
-            self.offset += 4 - pad
-
     def add_data(self, additional_data: bytes) -> None:
         """
         Add the file data to the object.
         """
         self.logger.debug("Adding data: %s", additional_data)
         self.data += additional_data
+
+    @return_offset
+    def get_name(self) -> int:
+        """
+        Get the name of the file.
+        """
+        name = self._read_bytes(self.namesize, pad=True).decode('ascii').strip('\0')
+
+        if not name:
+            raise ValueError("Empty name")
+        self.name = name
 
     @return_offset
     def read_contents(self) -> int:
@@ -177,8 +156,25 @@ class CPIOEntry:
         if self.entry_mode is None:
             self.logger.debug("No data to read")
             return
-        content_data = self.read_bytes(self.filesize, pad=True)
+        content_data = self._read_bytes(self.filesize, pad=True)
         self.cpio_data = CPIOData.from_bytes(content_data, self, _log_init=False)
+
+    def _read_bytes(self, length: int, pad=False) -> bytes:
+        """
+        Read the next length bytes from the data.
+        """
+        data = self.data[self.offset:self.offset + length]
+        self.logger.debug("Read bytes: %s", data)
+        self.offset += length
+
+        if pad:
+            current_offset = self.offset
+            self.logger.debug("Calculating pad offset using total offset: %s, offset: %s", self.total_offset, current_offset)
+            if pad := (current_offset + self.total_offset) % 4:
+                self.logger.debug("Pad size: %d", 4 - pad)
+                self.offset += 4 - pad
+
+        return data
 
     def __str__(self):
         """
