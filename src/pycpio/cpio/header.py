@@ -6,6 +6,7 @@ from zenlib.logging import loggify
 
 from pycpio.modes import CPIOModes
 from pycpio.permissions import Permissions, print_permissions
+from pycpio.magic import CPIOMagic
 from .common import pad_cpio
 
 
@@ -22,6 +23,8 @@ class CPIOHeader:
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
+        elif kwargs.get('name'):
+            self.from_args(*args, **kwargs)
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data")
 
@@ -41,6 +44,22 @@ class CPIOHeader:
         """
         self.logger.debug("Adding data: %s", additional_data)
         self.data += additional_data
+
+    def from_args(self, *args, **kwargs) -> None:
+        """
+        Initialize the object from the arguments.
+        """
+        self.name = kwargs.pop('name')
+
+        for name, parameter in self.structure.__members__.items():
+            if name in ['magic', 'namesize']:
+                continue
+            setattr(self, name, kwargs.pop(name, parameter.value * b'0'))
+
+        self.permissions = kwargs.pop('permissions', set())
+
+        self.magic, _ = CPIOMagic[self.structure.__name__.split('_')[1]].value
+        self.namesize = format(len(self.name) + 1, '08x').encode('ascii')
 
     def from_bytes(self, data: bytes) -> None:
         if hasattr(self, 'data'):
@@ -92,7 +111,7 @@ class CPIOHeader:
             raise ValueError("Unable to resolve mode: %s" % self.mode)
 
         if not self.filesize and self.entry_mode not in [CPIOModes.Dir, CPIOModes.Symlink, CPIOModes.CharDev]:
-            raise ValueError("Mode cannot hav filesize of 0: %s" % self.entry_mode)
+            raise ValueError("Mode cannot have filesize of 0: %s" % self.entry_mode)
 
     def resolve_permissions(self):
         """
@@ -142,7 +161,7 @@ class CPIOHeader:
         """
         from datetime import datetime
 
-        out_str = f"[{self.ino}] "
+        out_str = f"[{int(self.ino, 16)}] "
         out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure.__members__:

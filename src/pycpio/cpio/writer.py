@@ -27,11 +27,13 @@ class CPIOWriter:
             for entry in self.cpio_entries:
                 entry_bytes = bytes(entry)
                 padding = pad_cpio(len(entry_bytes))
-                self.logger.debug("[%s] Padding with %s bytes" % (entry.header.name, padding))
                 output_bytes = entry_bytes + b'\x00' * padding
                 f.write(output_bytes)
-                self.logger.debug("[%d] Wrote bytes: %s" % (offset, len(output_bytes)))
+                self.logger.log(5, "[%d] Wrote '%d' bytes with padding: %d" % (offset, len(output_bytes), padding))
                 offset += len(output_bytes)
+            trailer = CPIOHeader(self.cpio_entries[0].header.structure, name="TRAILER!!!")
+            self.logger.debug("Writing trailer: %s" % trailer)
+            f.write(bytes(trailer))
 
-        self.logger.info("Done writing CPIO archive")
+        self.logger.info("Finished writing CPIO archive")
 
