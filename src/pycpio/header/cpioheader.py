@@ -76,9 +76,8 @@ class CPIOHeader:
         """
         Initialize the object from the arguments.
         """
-        self.name = kwargs.pop('name')
-
         self.structure = kwargs.pop('structure', HEADER_NEW)
+        self.name = kwargs.pop('name')
 
         for name, parameter in self.structure.__members__.items():
             if name in ['magic', 'namesize']:

@@ -42,7 +42,7 @@ class CPIOWriter:
                 f.write(output_bytes)
                 self.logger.debug("[%d] Wrote '%d' bytes for: %s" % (offset, len(output_bytes), entry.header.name))
                 offset += len(output_bytes)
-            trailer = CPIOHeader(self.structure, name="TRAILER!!!")
+            trailer = CPIOHeader(structure=self.structure, name="TRAILER!!!", logger=self.logger, _log_init=False)
             self.logger.debug("Writing trailer: %s" % trailer)
             f.write(bytes(trailer))
 
