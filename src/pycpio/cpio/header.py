@@ -193,15 +193,16 @@ class CPIOHeader:
         out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure.__members__:
-            if attr in ['ino', 'mode', 'uid', 'gid', 'nlink', 'devmajor', 'devminor',
+            if attr in ['ino', 'mode', 'nlink', 'devmajor', 'devminor',
                         'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
+            elif attr == 'magic':
+                out_str += f"    {attr}: {self.magic}\n"
             elif attr == 'mtime':
                 out_str += f"    {attr}: {datetime.fromtimestamp(int(self.mtime, 16))}\n"
             else:
-                out_str += f"    {attr}: {getattr(self, attr)}\n"
+                out_str += f"    {attr}: {int(getattr(self, attr), 16)}\n"
 
-        out_str += f"    Owner, Group: {int(self.uid)} {int(self.gid)}\n"
         out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
 
         return out_str
