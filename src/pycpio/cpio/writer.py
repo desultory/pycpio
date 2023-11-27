@@ -33,7 +33,7 @@ class CPIOWriter:
                 padding = pad_cpio(len(entry_bytes))
                 output_bytes = entry_bytes + b'\x00' * padding
                 f.write(output_bytes)
-                self.logger.log(5, "[%d] Wrote '%d' bytes with padding: %d" % (offset, len(output_bytes), padding))
+                self.logger.debug("[%d] Wrote '%d' bytes for: %s" % (offset, len(output_bytes), entry.header.name))
                 offset += len(output_bytes)
             trailer = CPIOHeader(self.cpio_entries[0].header.structure, name="TRAILER!!!")
             self.logger.debug("Writing trailer: %s" % trailer)

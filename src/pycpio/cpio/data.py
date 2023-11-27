@@ -15,23 +15,51 @@ class CPIOData:
     Generic object for CPIO data
     """
     @staticmethod
-    def from_path(path: Path, header_struct, *args, **kwargs):
+    def from_path(path: Path, header_structure, *args, **kwargs):
         """
         Create a CPIOData object from a path
         """
         from pycpio.cpio import CPIOHeader
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError("File does not exist: %s" % path)
 
-        with open(path, 'rb') as f:
-            data = f.read()
+        path = Path(path)  # First get the mode from the file type
+        if path.is_symlink():
+            mode = CPIOModes.Symlink.value
+        elif path.is_dir():
+            mode = CPIOModes.Dir.value
+        elif path.is_file():
+            mode = CPIOModes.File.value
+        elif path.is_block_device():
+            mode = CPIOModes.BlockDev.value
+        elif path.is_dir():
+            mode = CPIOModes.Dir.value
+        elif path.is_char_device():
+            mode = CPIOModes.CharDev.value
+        elif path.is_fifo():
+            mode = CPIOModes.Fifo.value
+        else:
+            raise ValueError("Unknown file type: %s" % path)
 
-        kwargs['mtime'] = format(int(path.stat().st_mtime), '08x').encode('ascii')
-        kwargs['filesize'] = format(len(data), '08x').encode('ascii')
+        # Then add the permissions from the actual file
+        if mode in [CPIOModes.File.value, CPIOModes.Dir.value]:
+            mode |= path.stat().st_mode & 0o777
 
-        header = CPIOHeader.from_path(path, header_struct, logger=kwargs.pop('logger', None), *args, **kwargs)
+            with open(path, 'rb') as f:
+                data = f.read()
+            kwargs['mtime'] = path.stat().st_mtime
+            kwargs['filesize'] = len(data)
 
+            path = path.resolve()
+        else:
+            data = b''
+
+        if mode == CPIOModes.Symlink.value:
+            data = str(path.readlink()).encode('ascii')
+            kwargs['filesize'] = format(len(data), '08x').encode('ascii')
+
+        kwargs['name'] = str(path)
+        kwargs['mode'] = mode
+
+        header = CPIOHeader(header_structure, logger=kwargs.pop('logger'), *args, **kwargs)
         return CPIOData.get_subtype(data, header, *args, **kwargs)
 
     @staticmethod
@@ -51,7 +79,7 @@ class CPIOData:
         self.header = header
 
     def __str__(self):
-        out_str = f"\n{self.header.name}: {self.header}"
+        out_str = f"\n{self.header}"
         out_str += f"{self.__class__.__name__} "
         return out_str
 

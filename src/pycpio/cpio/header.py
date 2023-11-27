@@ -2,8 +2,6 @@
 CPIO entry definition. Starts as just the header and then takes additional data.
 """
 
-from pathlib import Path
-
 from zenlib.logging import loggify
 
 from pycpio.modes import CPIOModes
@@ -19,37 +17,6 @@ class CPIOHeader:
     from_path can be used to create a new CPIO header from a path on the host system.
     """
     _ignore_mode_permissions = [CPIOModes.CharDev]
-
-    @staticmethod
-    def from_path(path: Path, header_structure, *args, **kwargs):
-        """
-        Create a CPIOHeader from a path.
-        """
-        path = Path(path).resolve()
-        if not path.exists():
-            raise ValueError("Path does not exist: %s" % path)
-
-        if path.is_symlink():
-            mode = CPIOModes.Symlink.value
-        elif path.is_dir():
-            mode = CPIOModes.Dir.value
-        elif path.is_file():
-            mode = CPIOModes.File.value
-        elif path.is_block_device():
-            mode = CPIOModes.BlockDev.value
-        elif path.is_dir():
-            mode = CPIOModes.Dir.value
-        elif path.is_char_device():
-            mode = CPIOModes.CharDev.value
-        elif path.is_fifo():
-            mode = CPIOModes.Fifo.value
-        else:
-            raise ValueError("Unknown file type: %s" % path)
-
-        mode |= path.stat().st_mode & 0o777
-
-        kwargs['mode'] = format(mode, '08x').encode('ascii')
-        return CPIOHeader(header_structure, name=str(path), *args, **kwargs)
 
     def __init__(self, header_structure, *args, **kwargs):
         self.structure = header_structure
@@ -93,7 +60,8 @@ class CPIOHeader:
                 continue
             value = kwargs.pop(name, parameter.value * b'0')
             if not isinstance(value, bytes):
-                raise ValueError("[%s] Value must be bytes: %s" % (name, value))
+                self.logger.debug("Converting %s to bytes: %s" % (name, value))
+                value = format(int(value), '08x').encode('ascii')
             setattr(self, name, value)
 
         self.magic, _ = CPIOMagic[self.structure.__name__.split('_')[1]].value
@@ -210,8 +178,6 @@ class CPIOHeader:
                 continue
             elif attr == 'mtime':
                 out_str += f"    {attr}: {datetime.fromtimestamp(int(self.mtime, 16))}\n"
-            elif attr == 'mode':
-                out_str += f"    {attr}: {oct(self.mode)}\n"
             else:
                 out_str += f"    {attr}: {getattr(self, attr)}\n"
 
