@@ -1,9 +1,8 @@
 
 from zenlib.logging import loggify
 
-from .common import pad_cpio, get_new_inode
-from .header import CPIOHeader
-from pycpio.magic import CPIOMagic
+from pycpio.cpio import pad_cpio, get_new_inode
+from pycpio.header import CPIOHeader, HEADER_NEW
 
 from pathlib import Path
 
@@ -18,10 +17,7 @@ class CPIOWriter:
         self.cpio_entries = cpio_entries
         self.output_file = Path(output_file)
 
-        if structure is None:
-            magic, strucutre = CPIOMagic['NEW'].value
-
-        self.structure = structure
+        self.structure = structure if structure is not None else HEADER_NEW
 
     def write(self):
         """

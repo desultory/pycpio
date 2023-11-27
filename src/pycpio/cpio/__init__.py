@@ -1,6 +1,4 @@
-from .reader import CPIOReader
-from .writer import CPIOWriter
-from .header import CPIOHeader
 from .data import CPIOData
+from .common import pad_cpio, get_new_inode
 
-__all__ = ['CPIOReader', 'CPIOWriter', 'CPIOHeader', 'CPIOData']
+__all__ = ['CPIOData', 'pad_cpio', 'get_new_inode']

@@ -3,8 +3,10 @@ from pathlib import Path
 from typing import Union
 from importlib.metadata import version
 
-from pycpio.cpio import CPIOReader, CPIOWriter, CPIOData
-from pycpio.magic import CPIOMagic
+from pycpio.cpio import CPIOData
+from pycpio.header import HEADER_NEW
+from pycpio.writer import CPIOWriter
+from pycpio.reader import CPIOReader
 from zenlib.logging import loggify
 
 __version__ = version(__package__)
@@ -18,6 +20,8 @@ class PyCPIO:
     def __init__(self, *args, **kwargs):
         self.entries = {}
 
+        self.structure = kwargs.pop('structure', HEADER_NEW)
+
     def read_cpio_file(self, file_path: Path):
         """
         Creates a CPIOReader object and reads the file.
@@ -26,26 +30,19 @@ class PyCPIO:
             raise FileNotFoundError(f"{file_path} does not exist")
 
         reader = CPIOReader(file_path, logger=self.logger, _log_init=False)
-        if structure := getattr(self, 'structure', None):
-            if structure != reader.structure:
-                raise ValueError(f"Structure of {file_path} does not match structure of {self.file_path}")
-        else:
-            self.structure = reader.structure
 
         for name, entry in reader.entries.items():
             self.logger.debug("[%s]Read CPIO entry: %s" % (file_path.name, entry))
             if name in self.entries:
                 raise ValueError("Duplicate entry: %s" % entry.header.name)
+            if entry.header.structure != self.structure:
+                raise ValueError("Entry structure does not match archive structure: %s" % entry)
             self.entries[name] = entry
 
     def append_cpio(self, path: Path):
         """
         Appends a file or directory to the CPIO archive.
         """
-        if not getattr(self, 'structure', None):
-            _, self.structure = CPIOMagic['NEW'].value
-            self.logger.warning("No structure specified, using HEADER_NEW")
-
         entry = CPIOData.from_path(path, self.structure, logger=self.logger, _log_init=False)
 
         if entry.header.name in self.entries:

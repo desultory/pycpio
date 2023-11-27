@@ -1,5 +1,5 @@
 """
-CPIO header definitions and parsing.
+CPIO header definitions.
 """
 
 from enum import Enum
@@ -20,10 +20,3 @@ class HEADER_NEW(Enum):
     rdevminor = 8
     namesize = 8
     check = 8
-
-
-class Magic(Enum):
-    """
-    Enum for CPIO magic numbers.
-    """
-    NEW = (b'070701', HEADER_NEW)

@@ -2,10 +2,8 @@
 from pathlib import Path
 from typing import Union
 
-from .common import pad_cpio
-from .header import CPIOHeader
-from .data import CPIOData
-from pycpio.magic import CPIOMagic
+from pycpio.cpio import pad_cpio, CPIOData
+from pycpio.header import CPIOHeader
 from zenlib.logging import loggify
 
 
@@ -15,7 +13,9 @@ class CPIOReader:
     A class for reading CPIO archives.
     Takes a file path as input, and reads it into self.raw_cpio.
 
-    Once processed, the files are stored in self.entries, which is a list of CPIOData objects.
+    Once processed, the files are stored in self.entries, which is a dictionary of CPIO entries.
+
+    Each entry is processed individually, the reader keeps no state of CPIO header structure.
     """
     def __init__(self, input_file: Union[Path, str], *args, **kwargs):
         self.file_path = Path(input_file)
@@ -42,26 +42,6 @@ class CPIOReader:
             self.offset += pad_size
         return data
 
-    def process_magic(self):
-        """ Processes the magic number at the beginning of the CPIO archive. """
-        magic_bytes = self._read_bytes(6)
-
-        if hasattr(self, 'structure'):
-            if magic_bytes != self.magic:
-                self.logger.debug(self.cpio_file[self.offset - 32:self.offset + 32])
-                raise ValueError("Magic number mismatch: %s != %s" % (magic_bytes, self.magic))
-            return
-
-        for magic_type in CPIOMagic:
-            magic, structure = magic_type.value
-            if magic == magic_bytes:
-                self.logger.debug("Using structure: %s" % structure)
-                self.structure = structure
-                self.magic = magic
-                break
-        else:
-            raise ValueError("Magic number not found in CPIOMagic: %s" % magic_bytes)
-
     def read_cpio_file(self):
         """ Reads a CPIO archive. """
         self.logger.info("Reading CPIO archive: %s" % self.file_path)
@@ -74,11 +54,8 @@ class CPIOReader:
 
     def process_cpio_header(self) -> CPIOHeader:
         """ Processes a single CPIO header from self.raw_cpio. """
-        self.process_magic()
-        # The magic number was already read, so we need to read the rest of the header
-        header_data = self.magic + self._read_bytes(104)
-        kwargs = {'header_structure': self.structure, 'header_data': header_data,
-                  'logger': self.logger, '_log_init': False}
+        header_data = self._read_bytes(110)
+        kwargs = {'header_data': header_data, 'logger': self.logger, '_log_init': False}
         header = CPIOHeader(**kwargs)
 
         # Get the filename now that we know the size

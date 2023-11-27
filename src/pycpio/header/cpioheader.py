@@ -2,12 +2,13 @@
 CPIO entry definition. Starts as just the header and then takes additional data.
 """
 
+
 from zenlib.logging import loggify
 
-from pycpio.modes import resolve_mode_bytes
-from pycpio.permissions import print_permissions, resolve_permissions
-from pycpio.magic import CPIOMagic
-from .common import pad_cpio
+from pycpio.masks import resolve_mode_bytes, print_permissions, resolve_permissions
+from .header_funcs import get_header_from_magic, get_magic_from_header
+from .headers import HEADER_NEW
+from pycpio.cpio import pad_cpio
 
 
 @loggify
@@ -16,10 +17,7 @@ class CPIOHeader:
     CPIO entry, can be initialized from a segment of header data with or without a structure definition.
     from_path can be used to create a new CPIO header from a path on the host system.
     """
-    def __init__(self, header_structure, *args, **kwargs):
-        self.structure = header_structure
-        self.permissions = set()
-
+    def __init__(self, *args, **kwargs):
         header_data = kwargs.pop('header_data', None)
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
@@ -38,13 +36,14 @@ class CPIOHeader:
             length = self.structure.__members__[key].value
             self.logger.debug("Converting %s to bytes: %s" % (key, value))
             if isinstance(value, str):
-                value = format(int(value, 16), f'0{length}x').encode('ascii')
+                value = format(int(value, 16), f'0{length}x')
             elif isinstance(value, float):
-                value = format(int(value), f'0{length}x').encode('ascii')
+                value = format(int(value), f'0{length}x')
             elif isinstance(value, int):
-                value = format(value, f'0{length}x').encode('ascii')
+                value = format(value, f'0{length}x')
             else:
                 raise ValueError("Unable to convert %s to bytes: %s" % (key, value))
+            value = value.encode('ascii')
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
 
         super().__setattr__(key, value)
@@ -79,15 +78,15 @@ class CPIOHeader:
         """
         self.name = kwargs.pop('name')
 
+        self.structure = kwargs.pop('structure', HEADER_NEW)
+
         for name, parameter in self.structure.__members__.items():
             if name in ['magic', 'namesize']:
                 continue
             value = kwargs.pop(name, parameter.value * b'0')
             setattr(self, name, value)
 
-        self.magic, _ = CPIOMagic[self.structure.__name__.split('_')[1]].value
-        self.namesize = len(self.name) + 1
-        self.resolve_mode()
+        self.magic = get_magic_from_header(self.structure)
 
     def from_bytes(self, data: bytes) -> None:
         if hasattr(self, 'data'):
@@ -107,6 +106,7 @@ class CPIOHeader:
         Parse the data according to the structure.
         Sets attributes on the object.
         """
+        self.structure = get_header_from_magic(self.data[:6])
         for key, length_val in self.structure.__members__.items():
             length = length_val.value
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)

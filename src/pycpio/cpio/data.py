@@ -6,7 +6,7 @@ from pathlib import Path
 
 from zenlib.logging import loggify
 
-from pycpio.modes import mode_bytes_from_path
+from pycpio.masks import mode_bytes_from_path
 
 
 @loggify
@@ -19,14 +19,15 @@ class CPIOData:
         """
         Create a CPIOData object from a path
         """
-        from pycpio.cpio import CPIOHeader
+        from pycpio.header import CPIOHeader
 
         path = Path(path)
         kwargs['path'] = path
         kwargs['name'] = str(path)
         kwargs['mode'] = mode_bytes_from_path(path)
+        kwargs['structure'] = header_structure
 
-        header = CPIOHeader(header_structure, logger=kwargs.pop('logger'), *args, **kwargs)
+        header = CPIOHeader(logger=kwargs.pop('logger'), *args, **kwargs)
         return CPIOData.get_subtype(b'', header, *args, **kwargs)
 
     @staticmethod
@@ -34,11 +35,29 @@ class CPIOData:
         """
         Get the data type from the header
         """
+        # Imports must be here so the module can be imported
+        from .file import CPIO_File
+        from .symlink import CPIO_Symlink
+        from .chardev import CPIO_CharDev
+        from .dir import CPIO_Dir
+
         mode = header.mode_type
         logger = header.logger
-        # Just attempt to get the data type from the mode name
-        data_type = globals()[f'CPIO_{mode.name}']
-        return data_type(data, header, logger=logger, *args, **kwargs)
+
+        args = (data, header, *args)
+        kwargs = {'logger': logger, **kwargs}
+
+        match mode.name:
+            case 'File':
+                return CPIO_File(*args, **kwargs)
+            case 'Symlink':
+                return CPIO_Symlink(*args, **kwargs)
+            case 'CharDev':
+                return CPIO_CharDev(*args, **kwargs)
+            case 'Dir':
+                return CPIO_Dir(*args, **kwargs)
+            case _:
+                raise NotImplementedError(f"Unknown mode type: {mode.name}")
 
     def __init__(self, data: bytes, header, *args, **kwargs):
         self.data = data
@@ -54,63 +73,4 @@ class CPIOData:
         Convert the data to bytes
         """
         return bytes(self.header) + self.data
-
-
-class CPIO_File(CPIOData):
-    """
-    Standard file object
-    """
-    def __str__(self):
-        return f"{super().__str__()}({len(self.data)} bytes)"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if path := kwargs.pop('path', None):
-            path = path.resolve()
-            with path.open('rb') as f:
-                self.data = f.read()
-            self.header.filesize = format(len(self.data), '08x').encode('ascii')
-            self.header.mtime = path.resolve().stat().st_mtime
-            self.header.mode = int(self.header.mode, 16) | (path.stat().st_mode & 0o777)
-            if path.is_absolute():
-                self.header.name = str(path.relative_to(path.anchor))
-
-
-class CPIO_Symlink(CPIOData):
-    """
-    Symbolic link object
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if path := kwargs.pop('path', None):
-            self.data = str(path.readlink()).encode('ascii')
-            kwargs['filesize'] = format(len(self.data), '08x').encode('ascii')
-
-    def __str__(self):
-        target = self.data.decode('ascii').rstrip('\0')
-        return f"{super().__str__()}({target})"
-
-
-class CPIO_Dir(CPIOData):
-    """
-    Directory object
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if path := kwargs.pop('path', None):
-            path = path.resolve()
-            self.header.mode = int(self.header.mode, 16) | (path.stat().st_mode & 0o777)
-            self.header.mtime = path.resolve().stat().st_mtime
-            if path.is_absolute():
-                self.header.name = str(path.relative_to(path.anchor))
-
-
-class CPIO_CharDev(CPIOData):
-    """
-    Character device object
-    """
-    def __str__(self):
-        return f"{super().__str__()}({int(self.header.rdevmajor)}, {int(self.header.rdevminor)})"
-
-
 
