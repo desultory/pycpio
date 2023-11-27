@@ -16,7 +16,7 @@ class PyCPIO:
     A class for reading CPIO archives.
     """
     def __init__(self, *args, **kwargs):
-        self.entries = []
+        self.entries = {}
 
     def read_cpio_file(self, file_path: Path):
         """
@@ -32,34 +32,44 @@ class PyCPIO:
         else:
             self.structure = reader.structure
 
-        self.entries.extend(reader.entries)
+        for name, entry in reader.entries.items():
+            self.logger.debug("[%s]Read CPIO entry: %s" % (file_path.name, entry))
+            if name in self.entries:
+                raise ValueError("Duplicate entry: %s" % entry.header.name)
+            self.entries[name] = entry
 
     def append_cpio(self, path: Path):
         """
         Appends a file or directory to the CPIO archive.
         """
         if not getattr(self, 'structure', None):
-            self.structure, _ = CPIOMagic['NEW'].value
+            _, self.structure = CPIOMagic['NEW'].value
             self.logger.warning("No structure specified, using HEADER_NEW")
 
-        if entry := CPIOData.from_path(path, self.structure, logger=self.logger, _log_init=False):
-            self.logger.info("Created CPIO entry: %s", entry)
-            self.entries.append(entry)
-        else:
-            raise ValueError(f"Could not create header for {path}")
+        entry = CPIOData.from_path(path, self.structure, logger=self.logger, _log_init=False)
+
+        if entry.header.name in self.entries:
+            raise ValueError(f"Duplicate entry: {entry.header.name}")
+
+        self.entries[entry.header.name] = entry
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """
         Writes a CPIO archive to file.
         """
-        writer = CPIOWriter(self.entries, file_path, logger=self.logger, _log_init=False)
+        kwargs = {'logger': self.logger, '_log_init': False}
+
+        if hasattr(self, 'structure'):
+            kwargs['structure'] = self.structure
+
+        writer = CPIOWriter(self.entries, file_path, **kwargs)
         writer.write()
 
     def list_files(self):
         """
         Returns a list of files in the CPIO archive.
         """
-        return '\n'.join([f.header.name for f in self.entries])
+        return '\n'.join([name for name in self.entries.keys()])
 
     def __str__(self):
-        return "\n".join([str(f) for f in self.entries])
+        return "\n".join([str(f) for f in self.entries.values()])

@@ -21,7 +21,10 @@ class CPIOData:
         """
         from pycpio.cpio import CPIOHeader
 
-        path = Path(path)  # First get the mode from the file type
+        path = Path(path)
+        kwargs['path'] = path
+
+        # First get the mode from the file type
         if path.is_symlink():
             mode = CPIOModes.Symlink.value
         elif path.is_dir():
@@ -39,29 +42,12 @@ class CPIOData:
         else:
             raise ValueError("Unknown file type: %s" % path)
 
-        # Then add the permissions from the actual file
-        if mode == CPIOModes.File.value:
-            mode |= path.stat().st_mode & 0o777
-            with open(path, 'rb') as f:
-                data = f.read()
-            kwargs['filesize'] = len(data)
-
-        else:
-            data = b''
-
-        if mode in [CPIOModes.File.value, CPIOModes.Dir.value]:
-            path = path.resolve()
-            kwargs['mtime'] = path.stat().st_mtime
-
-        if mode == CPIOModes.Symlink.value:
-            data = str(path.readlink()).encode('ascii')
-            kwargs['filesize'] = format(len(data), '08x').encode('ascii')
-
         kwargs['name'] = str(path)
         kwargs['mode'] = mode
 
         header = CPIOHeader(header_structure, logger=kwargs.pop('logger'), *args, **kwargs)
-        return CPIOData.get_subtype(data, header, *args, **kwargs)
+
+        return CPIOData.get_subtype(b'', header, *args, **kwargs)
 
     @staticmethod
     def get_subtype(data: bytes, header, *args, **kwargs):
@@ -98,6 +84,18 @@ class CPIO_File(CPIOData):
     def __str__(self):
         return f"{super().__str__()}({len(self.data)} bytes)"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if path := kwargs.pop('path', None):
+            path = path.resolve()
+            with path.open('rb') as f:
+                self.data = f.read()
+            self.header.filesize = format(len(self.data), '08x').encode('ascii')
+            self.header.mtime = path.resolve().stat().st_mtime
+            self.header.mode = int(self.header.mode, 16) | (path.stat().st_mode & 0o777)
+            if path.is_absolute():
+                self.header.name = str(path.relative_to(path.anchor))
+
 
 class CPIO_Symlink(CPIOData):
     """
@@ -105,17 +103,27 @@ class CPIO_Symlink(CPIOData):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.target = self.data.decode('ascii').rstrip('\0')
+        if path := kwargs.pop('path', None):
+            self.data = str(path.readlink()).encode('ascii')
+            kwargs['filesize'] = format(len(self.data), '08x').encode('ascii')
 
     def __str__(self):
-        return f"{super().__str__()}({self.target})"
+        target = self.data.decode('ascii').rstrip('\0')
+        return f"{super().__str__()}({target})"
 
 
 class CPIO_Dir(CPIOData):
     """
     Directory object
     """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if path := kwargs.pop('path', None):
+            path = path.resolve()
+            self.header.mode = int(self.header.mode, 16) | (path.stat().st_mode & 0o777)
+            self.header.mtime = path.resolve().stat().st_mtime
+            if path.is_absolute():
+                self.header.name = str(path.relative_to(path.anchor))
 
 
 class CPIO_CharDev(CPIOData):

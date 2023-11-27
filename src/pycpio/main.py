@@ -21,6 +21,8 @@ def main():
     parser.add_argument('-i', '--input', help='input file')
 
     parser.add_argument('-a', '--append', action='store', help='append to archive')
+    parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
+
     parser.add_argument('-o', '--output', help='output file')
 
     parser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')

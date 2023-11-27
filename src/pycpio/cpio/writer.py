@@ -3,6 +3,7 @@ from zenlib.logging import loggify
 
 from .common import pad_cpio
 from .header import CPIOHeader
+from pycpio.magic import CPIOMagic
 
 from pathlib import Path
 
@@ -13,9 +14,14 @@ class CPIOWriter:
     Takes a list of CPIOData objects,
     writes them to the file specified by output_file.
     """
-    def __init__(self, cpio_entries: list, output_file: Path, *args, **kwargs):
+    def __init__(self, cpio_entries: list, output_file: Path, structure=None, *args, **kwargs):
         self.cpio_entries = cpio_entries
         self.output_file = Path(output_file)
+
+        if structure is None:
+            magic, strucutre = CPIOMagic['NEW'].value
+
+        self.structure = structure
 
     def write(self):
         """
@@ -25,7 +31,7 @@ class CPIOWriter:
         self.logger.info(f"Writing CPIO archive to {self.output_file}")
         offset = 0
         with open(self.output_file, "wb") as f:
-            for entry in self.cpio_entries:
+            for entry in self.cpio_entries.values():
                 if entry.header.ino in inodes:
                     raise ValueError(f"Duplicate inode: {entry.header.ino}")
                 inodes.add(entry.header.ino)
@@ -35,7 +41,7 @@ class CPIOWriter:
                 f.write(output_bytes)
                 self.logger.debug("[%d] Wrote '%d' bytes for: %s" % (offset, len(output_bytes), entry.header.name))
                 offset += len(output_bytes)
-            trailer = CPIOHeader(self.cpio_entries[0].header.structure, name="TRAILER!!!")
+            trailer = CPIOHeader(self.structure, name="TRAILER!!!")
             self.logger.debug("Writing trailer: %s" % trailer)
             f.write(bytes(trailer))
 

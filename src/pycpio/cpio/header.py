@@ -32,6 +32,31 @@ class CPIOHeader:
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data")
 
+    def __setattr__(self, key, value):
+        """
+        If the key is in the structure, set the value to the bytes representation.
+        """
+        if hasattr(self, 'structure') and key in self.structure.__members__ and not isinstance(value, bytes):
+            length = self.structure.__members__[key].value
+            self.logger.debug("Converting %s to bytes: %s" % (key, value))
+            if isinstance(value, str):
+                value = format(int(value, 16), f'0{length}x').encode('ascii')
+            elif isinstance(value, float):
+                value = format(int(value), f'0{length}x').encode('ascii')
+            elif isinstance(value, int):
+                value = format(value, f'0{length}x').encode('ascii')
+            else:
+                raise ValueError("Unable to convert %s to bytes: %s" % (key, value))
+            self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
+
+        super().__setattr__(key, value)
+
+        if key == 'mode' and hasattr(self, 'filesize'):
+            self.resolve_mode()
+
+        if key == 'name':
+            self.namesize = len(value) + 1
+
     def _read_bytes(self, num_bytes: int) -> bytes:
         """
         Read the specified number of bytes from the data.
@@ -59,15 +84,11 @@ class CPIOHeader:
             if name in ['magic', 'namesize']:
                 continue
             value = kwargs.pop(name, parameter.value * b'0')
-            if not isinstance(value, bytes):
-                self.logger.debug("Converting %s to bytes: %s" % (name, value))
-                value = format(int(value), '08x').encode('ascii')
             setattr(self, name, value)
 
         self.magic, _ = CPIOMagic[self.structure.__name__.split('_')[1]].value
-        self.namesize = format(len(self.name) + 1, '08x').encode('ascii')
+        self.namesize = len(self.name) + 1
         self.resolve_mode()
-        self.resolve_permissions()
 
     def from_bytes(self, data: bytes) -> None:
         if hasattr(self, 'data'):
@@ -81,12 +102,6 @@ class CPIOHeader:
 
         # Header processing
         self.parse_header()  # Parse the header
-        # Don't process modes/permissions for the trailer
-        if self.mode == b'0' * 8:
-            self.entry_mode = None
-        else:
-            self.resolve_mode()
-            self.resolve_permissions()
 
     def parse_header(self):
         """
@@ -105,12 +120,15 @@ class CPIOHeader:
             else:
                 setattr(self, key, data)
                 self.logger.debug("Parsed %s: %s", key, data)
+        # Calculate permissions from the mode
+        self.resolve_mode()
 
     def resolve_mode(self):
         """
         Resolve the mode field.
         """
         if self.mode == b'0' * 8:
+            self.logger.debug("Mode is 0, setting entry_mode to None")
             self.entry_mode = None
             return
 
@@ -121,8 +139,10 @@ class CPIOHeader:
         else:
             raise ValueError("Unable to resolve mode: %s" % self.mode)
 
-        if not self.filesize and self.entry_mode not in [CPIOModes.Dir, CPIOModes.Symlink, CPIOModes.CharDev]:
+        if not getattr(self, 'filesize', 0) and self.entry_mode not in [CPIOModes.Dir, CPIOModes.Symlink, CPIOModes.CharDev]:
             raise ValueError("Mode cannot have filesize of 0: %s" % self.entry_mode)
+
+        self.resolve_permissions()
 
     def resolve_permissions(self):
         """
@@ -181,7 +201,7 @@ class CPIOHeader:
             else:
                 out_str += f"    {attr}: {getattr(self, attr)}\n"
 
-        out_str += f"    Owner, Group: {self.uid} {self.gid}\n"
+        out_str += f"    Owner, Group: {int(self.uid)} {int(self.gid)}\n"
         out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
 
         return out_str

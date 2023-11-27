@@ -19,7 +19,7 @@ class CPIOReader:
     """
     def __init__(self, input_file: Union[Path, str], *args, **kwargs):
         self.file_path = Path(input_file)
-        self.entries = []
+        self.entries = {}
 
         self.read_cpio_file()
         self.process_cpio_file()
@@ -30,8 +30,8 @@ class CPIOReader:
             return b''
 
         data = self.cpio_file[self.offset:self.offset + num_bytes]
-        if len(data) > 128:
-            self.logger.debug("Read %s bytes: %s..." % (num_bytes, data[:128]))
+        if len(data) > 256:
+            self.logger.debug("Read %s bytes: %s...%s" % (num_bytes, data[:128], data[-128:]))
         else:
             self.logger.debug("Read %s bytes: %s" % (num_bytes, data))
         self.offset += num_bytes
@@ -110,4 +110,7 @@ class CPIOReader:
     def process_cpio_file(self):
         """ Processes a CPIO archive."""
         for cpio_entry in self.process_cpio_data():
-            self.entries.append(cpio_entry)
+            name = cpio_entry.header.name
+            if name in self.entries:
+                raise ValueError("Duplicate entry found: %s" % name)
+            self.entries[name] = cpio_entry
