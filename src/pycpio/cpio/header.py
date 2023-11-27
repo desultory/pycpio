@@ -2,6 +2,8 @@
 CPIO entry definition. Starts as just the header and then takes additional data.
 """
 
+from pathlib import Path
+
 from zenlib.logging import loggify
 
 from pycpio.modes import CPIOModes
@@ -13,17 +15,52 @@ from .common import pad_cpio
 @loggify
 class CPIOHeader:
     """
-    CPIO entry, can be initialized from a segment of header data with the total offset, for padding.
+    CPIO entry, can be initialized from a segment of header data with or without a structure definition.
+    from_path can be used to create a new CPIO header from a path on the host system.
     """
     _ignore_mode_permissions = [CPIOModes.CharDev]
 
+    @staticmethod
+    def from_path(path: Path, header_structure, *args, **kwargs):
+        """
+        Create a CPIOHeader from a path.
+        """
+        path = Path(path).resolve()
+        if not path.exists():
+            raise ValueError("Path does not exist: %s" % path)
+
+        if path.is_symlink():
+            mode = CPIOModes.Symlink.value
+        elif path.is_dir():
+            mode = CPIOModes.Dir.value
+        elif path.is_file():
+            mode = CPIOModes.File.value
+        elif path.is_block_device():
+            mode = CPIOModes.BlockDev.value
+        elif path.is_dir():
+            mode = CPIOModes.Dir.value
+        elif path.is_char_device():
+            mode = CPIOModes.CharDev.value
+        elif path.is_fifo():
+            mode = CPIOModes.Fifo.value
+        else:
+            raise ValueError("Unknown file type: %s" % path)
+
+        mode |= path.stat().st_mode & 0o777
+
+        kwargs['mode'] = format(mode, '08x').encode('ascii')
+        return CPIOHeader(header_structure, name=str(path), *args, **kwargs)
+
     def __init__(self, header_structure, *args, **kwargs):
         self.structure = header_structure
+        self.permissions = set()
+
         header_data = kwargs.pop('header_data', None)
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
         elif kwargs.get('name'):
+            self.logger.info("Creating CPIO entry from name: %s", kwargs['name'])
             self.from_args(*args, **kwargs)
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data")
@@ -54,12 +91,15 @@ class CPIOHeader:
         for name, parameter in self.structure.__members__.items():
             if name in ['magic', 'namesize']:
                 continue
-            setattr(self, name, kwargs.pop(name, parameter.value * b'0'))
-
-        self.permissions = kwargs.pop('permissions', set())
+            value = kwargs.pop(name, parameter.value * b'0')
+            if not isinstance(value, bytes):
+                raise ValueError("[%s] Value must be bytes: %s" % (name, value))
+            setattr(self, name, value)
 
         self.magic, _ = CPIOMagic[self.structure.__name__.split('_')[1]].value
         self.namesize = format(len(self.name) + 1, '08x').encode('ascii')
+        self.resolve_mode()
+        self.resolve_permissions()
 
     def from_bytes(self, data: bytes) -> None:
         if hasattr(self, 'data'):
@@ -73,7 +113,6 @@ class CPIOHeader:
 
         # Header processing
         self.parse_header()  # Parse the header
-        self.permissions = set()
         # Don't process modes/permissions for the trailer
         if self.mode == b'0' * 8:
             self.entry_mode = None
@@ -103,6 +142,10 @@ class CPIOHeader:
         """
         Resolve the mode field.
         """
+        if self.mode == b'0' * 8:
+            self.entry_mode = None
+            return
+
         for mode_type in CPIOModes:
             if (mode_type.value & int(self.mode, 16)) == mode_type.value:
                 self.entry_mode = mode_type
@@ -125,9 +168,6 @@ class CPIOHeader:
         for perm_type in Permissions:
             if (perm_type.value & int(self.mode, 16)) == perm_type.value:
                 self.permissions.add(perm_type)
-
-        if not self.permissions:
-            raise ValueError("Unable to resolve permissions: %s" % self.mode)
 
     def get_name(self):
         """

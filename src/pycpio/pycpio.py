@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union
 from importlib.metadata import version
 
-from pycpio.cpio import CPIOReader, CPIOWriter
+from pycpio.cpio import CPIOReader, CPIOWriter, CPIOData
 from pycpio.magic import CPIOMagic
 from zenlib.logging import loggify
 
@@ -42,8 +42,11 @@ class PyCPIO:
             self.structure, _ = CPIOMagic['NEW'].value
             self.logger.warning("No structure specified, using HEADER_NEW")
 
-        if not path.exists():
-            raise FileNotFoundError(f"{path} does not exist")
+        if entry := CPIOData.from_path(path, self.structure, logger=self.logger, _log_init=False):
+            self.logger.info("Created CPIO entry: %s", entry)
+            self.entries.append(entry)
+        else:
+            raise ValueError(f"Could not create header for {path}")
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """

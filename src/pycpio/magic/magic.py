@@ -22,24 +22,8 @@ class HEADER_NEW(Enum):
     check = 8
 
 
-class HEADER_OLD(Enum):
-    magic = 6
-    dev = 6
-    ino = 6
-    mode = 6
-    uid = 6
-    gid = 6
-    nlink = 6
-    rdev = 6
-    mtime = 11
-    namesize = 6
-    filesize = 11
-    check = 6
-
-
 class Magic(Enum):
     """
     Enum for CPIO magic numbers.
     """
     NEW = (b'070701', HEADER_NEW)
-    OLD = (b'070707', HEADER_OLD)

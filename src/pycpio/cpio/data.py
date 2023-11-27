@@ -2,6 +2,8 @@
 CPIO data objects
 """
 
+from pathlib import Path
+
 from zenlib.logging import loggify
 
 from pycpio.modes import CPIOModes
@@ -13,13 +15,32 @@ class CPIOData:
     Generic object for CPIO data
     """
     @staticmethod
+    def from_path(path: Path, header_struct, *args, **kwargs):
+        """
+        Create a CPIOData object from a path
+        """
+        from pycpio.cpio import CPIOHeader
+        path = Path(path)
+        if not path.exists():
+            raise FileNotFoundError("File does not exist: %s" % path)
+
+        with open(path, 'rb') as f:
+            data = f.read()
+
+        kwargs['mtime'] = format(int(path.stat().st_mtime), '08x').encode('ascii')
+        kwargs['filesize'] = format(len(data), '08x').encode('ascii')
+
+        header = CPIOHeader.from_path(path, header_struct, logger=kwargs.pop('logger', None), *args, **kwargs)
+
+        return CPIOData.get_subtype(data, header, *args, **kwargs)
+
+    @staticmethod
     def get_subtype(data: bytes, header, *args, **kwargs):
         """
         Get the data type from the header
         """
         mode = header.entry_mode
         if mode in CPIOModes:
-            # Get the data type by removing the "S_" prefix
             data_type = globals()[f'CPIO_{mode.name}']
             logger = header.logger
             return data_type(data, header, logger=logger, *args, **kwargs)
