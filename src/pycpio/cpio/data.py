@@ -40,17 +40,18 @@ class CPIOData:
             raise ValueError("Unknown file type: %s" % path)
 
         # Then add the permissions from the actual file
-        if mode in [CPIOModes.File.value, CPIOModes.Dir.value]:
+        if mode == CPIOModes.File.value:
             mode |= path.stat().st_mode & 0o777
-
             with open(path, 'rb') as f:
                 data = f.read()
-            kwargs['mtime'] = path.stat().st_mtime
             kwargs['filesize'] = len(data)
 
-            path = path.resolve()
         else:
             data = b''
+
+        if mode in [CPIOModes.File.value, CPIOModes.Dir.value]:
+            path = path.resolve()
+            kwargs['mtime'] = path.stat().st_mtime
 
         if mode == CPIOModes.Symlink.value:
             data = str(path.readlink()).encode('ascii')
