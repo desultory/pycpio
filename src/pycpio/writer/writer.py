@@ -28,6 +28,7 @@ class CPIOWriter:
         offset = 0
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries.values():
+                self.logger.log(5, "Writing entry: %s" % entry)
                 # IDK if i want to do hardlink stuff here or in the PyCpio class
                 # That class manages the CPIOData objects, as well as duplicate detection
                 # If data is passed to the writer, it should try to write it

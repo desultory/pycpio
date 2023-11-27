@@ -23,6 +23,9 @@ def main():
     parser.add_argument('-a', '--append', action='store', help='append to archive')
     parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
 
+    parser.add_argument('-s', '--set-owner', action='store', help='set UID on all files')
+    parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
+
     parser.add_argument('-o', '--output', help='output file')
 
     parser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')
@@ -46,7 +49,15 @@ def main():
     else:
         logger.setLevel(20)
 
-    c = PyCPIO(logger=logger)
+    kwargs = {'logger': logger}
+
+    if args.set_owner:
+        kwargs['uid'] = int(args.set_owner)
+
+    if args.set_group:
+        kwargs['gid'] = int(args.set_group)
+
+    c = PyCPIO(**kwargs)
     if args.input:
         c.read_cpio_file(Path(args.input))
 

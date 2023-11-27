@@ -23,7 +23,7 @@ class CPIOData:
 
         path = Path(path)
         kwargs['path'] = path
-        kwargs['name'] = str(path)
+        kwargs['name'] = str(path).encode('ascii')
         kwargs['mode'] = mode_bytes_from_path(path)
         kwargs['structure'] = header_structure
 
@@ -46,6 +46,10 @@ class CPIOData:
 
         args = (data, header, *args)
         kwargs = {'logger': logger, **kwargs}
+
+        if mode is None:
+            # Return the base type for the trailer
+            return CPIOData(*args, **kwargs)
 
         match mode.name:
             case 'File':

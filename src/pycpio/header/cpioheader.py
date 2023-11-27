@@ -1,5 +1,5 @@
 """
-CPIO entry definition. Starts as just the header and then takes additional data.
+CPIO header class definition.
 """
 
 
@@ -14,11 +14,9 @@ from pycpio.cpio import pad_cpio
 @loggify
 class CPIOHeader:
     """
-    CPIO entry, can be initialized from a segment of header data with or without a structure definition.
-    from_path can be used to create a new CPIO header from a path on the host system.
+    CPIO HEADER, can be initialized from a segment of header data with or without a structure definition.
     """
-    def __init__(self, *args, **kwargs):
-        header_data = kwargs.pop('header_data', None)
+    def __init__(self, header_data=b'', overrides={}, *args, **kwargs):
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
@@ -26,14 +24,16 @@ class CPIOHeader:
             self.logger.info("Creating CPIO entry from name: %s", kwargs['name'])
             self.from_args(*args, **kwargs)
         else:
-            raise NotImplementedError("CPIOEntry must be initialized with header data")
+            raise NotImplementedError("CPIOEntry must be initialized with header data or a name")
+
+        self.process_overrides(overrides)
 
     def __setattr__(self, key, value):
         """
         If the key is in the structure, set the value to the bytes representation.
         """
-        if hasattr(self, 'structure') and key in self.structure.__members__ and not isinstance(value, bytes):
-            length = self.structure.__members__[key].value
+        if hasattr(self, 'structure') and key in self.structure and not isinstance(value, bytes):
+            length = self.structure[key]
             self.logger.debug("Converting %s to bytes: %s" % (key, value))
             if isinstance(value, str):
                 value = format(int(value, 16), f'0{length}x')
@@ -49,11 +49,34 @@ class CPIOHeader:
         super().__setattr__(key, value)
 
         if key == 'mode':
-            self.mode_type = resolve_mode_bytes(self.mode)
+            try:
+                self.mode_type = resolve_mode_bytes(self.mode)
+            except ValueError:
+                raise ValueError("Invalid mode: %s", self.mode)
             self.permissions = resolve_permissions(self.mode)
 
         if key == 'name':
-            self.namesize = len(value) + 1
+            if isinstance(value, bytes):
+                self.logger.debug("Name is bytes, converting to string")
+                value = value.decode('ascii')
+
+            super().__setattr__(key, value)
+
+            # Add space for the null byte
+            namesize = len(value) + 1
+            if hasattr(self, 'namesize') and namesize != self.namesize:
+                self.logger.debug("Name size changed: %s -> %s" % (namesize, self.namesize))
+            self.namesize = namesize
+
+    def process_overrides(self, overrides: dict) -> None:
+        """
+        Process the overrides dictionary and set the attributes on the object.
+        """
+        for attribute in self.structure:
+            if attribute in overrides:
+                value = overrides[attribute]
+                self.logger.debug("[%s] Setting override: %s" % (attribute, value))
+                setattr(self, attribute, value)
 
     def _read_bytes(self, num_bytes: int) -> bytes:
         """
@@ -79,10 +102,10 @@ class CPIOHeader:
         self.structure = kwargs.pop('structure', HEADER_NEW)
         self.name = kwargs.pop('name')
 
-        for name, parameter in self.structure.__members__.items():
+        for name, length in self.structure.items():
             if name in ['magic', 'namesize']:
                 continue
-            value = kwargs.pop(name, parameter.value * b'0')
+            value = kwargs.pop(name, length * b'0')
             setattr(self, name, value)
 
         self.magic = get_magic_from_header(self.structure)
@@ -106,8 +129,7 @@ class CPIOHeader:
         Sets attributes on the object.
         """
         self.structure = get_header_from_magic(self.data[:6])
-        for key, length_val in self.structure.__members__.items():
-            length = length_val.value
+        for key, length in self.structure.items():
             self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
 
             # Read the data, convert to int
@@ -123,7 +145,7 @@ class CPIOHeader:
         """
         Get the name of the file.
         """
-        name = self._read_bytes(int(self.namesize, 16)).decode('ascii').strip('\0')
+        name = self._read_bytes(int(self.namesize, 16)).decode('ascii').rstrip('\0')
 
         if not name:
             raise ValueError("Empty name")
@@ -135,13 +157,12 @@ class CPIOHeader:
         """
         out_bytes = b''
         # Get the bytes for each attribute
-        for attr, value in self.structure.__members__.items():
+        for attr, value in self.structure.items():
             out_bytes += getattr(self, attr)
-        # Output the name as bytes
-        out_bytes += self.name.encode('ascii')
-        # Calculate padding based on total length, and add the null terminator
-        padding = pad_cpio(len(out_bytes) + 1)
-        out_bytes += b'\0' * padding + b'\0'
+        # Output the name as bytes, with a null byte
+        out_bytes += self.name.encode('ascii') + b'\0'
+        # Calculate padding based on total length
+        out_bytes += b'\0' * pad_cpio(len(out_bytes))
 
         return out_bytes
 
@@ -154,7 +175,7 @@ class CPIOHeader:
         out_str = f"[{int(self.ino, 16)}] "
         out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
-        for attr in self.structure.__members__:
+        for attr in self.structure:
             if attr in ['ino', 'mode', 'nlink', 'devmajor', 'devminor',
                         'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue

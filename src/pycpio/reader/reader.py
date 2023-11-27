@@ -17,8 +17,11 @@ class CPIOReader:
 
     Each entry is processed individually, the reader keeps no state of CPIO header structure.
     """
-    def __init__(self, input_file: Union[Path, str], *args, **kwargs):
+    def __init__(self, input_file: Union[Path, str], overrides={}, *args, **kwargs):
         self.file_path = Path(input_file)
+        assert self.file_path.exists(), "File does not exist: %s" % self.file_path
+
+        self.overrides = overrides
         self.entries = {}
 
         self.read_cpio_file()
@@ -55,8 +58,16 @@ class CPIOReader:
     def process_cpio_header(self) -> CPIOHeader:
         """ Processes a single CPIO header from self.raw_cpio. """
         header_data = self._read_bytes(110)
-        kwargs = {'header_data': header_data, 'logger': self.logger, '_log_init': False}
-        header = CPIOHeader(**kwargs)
+
+        # Start using the class kwargs, as they may contain overrides
+        kwargs = {'header_data': header_data, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
+
+        try:
+            header = CPIOHeader(**kwargs)
+        except ValueError as e:
+            self.logger.error("Failed to process header: %s" % e)
+            self.logger.info("[%s] Header data at offset %d: %s" % (self.file_path, self.offset, header_data))
+            return
 
         # Get the filename now that we know the size
         filename_data = self._read_bytes(int(header.namesize, 16), pad=True)
@@ -64,7 +75,7 @@ class CPIOReader:
         header.get_name()
 
         # If it's the trailer, break
-        if header.name == 'TRAILER!!!' and not header.mode_type:
+        if not header.mode_type:
             self.logger.info("Trailer detected at offset: %s" % self.offset)
             return
         return header
@@ -89,5 +100,7 @@ class CPIOReader:
         for cpio_entry in self.process_cpio_data():
             name = cpio_entry.header.name
             if name in self.entries:
+                self.logger.debug("Current entries: %s" % self.entries)
                 raise ValueError("Duplicate entry found: %s" % name)
             self.entries[name] = cpio_entry
+            self.logger.debug("Added entry: %s" % cpio_entry)

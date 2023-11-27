@@ -18,18 +18,22 @@ class PyCPIO:
     A class for reading CPIO archives.
     """
     def __init__(self, *args, **kwargs):
+        self.overrides = {}
         self.entries = {}
 
         self.structure = kwargs.pop('structure', HEADER_NEW)
+
+        for name in self.structure:
+            if value := kwargs.pop(name, None):
+                self.logger.info("[%s] Setting override: %s" % (name, value))
+                self.overrides[name] = value
 
     def read_cpio_file(self, file_path: Path):
         """
         Creates a CPIOReader object and reads the file.
         """
-        if not file_path.exists():
-            raise FileNotFoundError(f"{file_path} does not exist")
-
-        reader = CPIOReader(file_path, logger=self.logger, _log_init=False)
+        kwargs = {'input_file': file_path, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
+        reader = CPIOReader(**kwargs)
 
         for name, entry in reader.entries.items():
             self.logger.debug("[%s]Read CPIO entry: %s" % (file_path.name, entry))
@@ -62,7 +66,7 @@ class PyCPIO:
 
                 name = str(path)
                 if name not in self.entries:
-                    self.logger.info("Current entries: %s" % self.list_files())
+                    self.logger.info("Current entries: %s" % self.entries)
                     raise ValueError(f"Entry not found: {name}")
             else:
                 raise ValueError(f"Entry not found: {name}")
