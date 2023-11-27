@@ -6,7 +6,7 @@ from pathlib import Path
 
 from zenlib.logging import loggify
 
-from pycpio.modes import CPIOModes
+from pycpio.modes import mode_bytes_from_path
 
 
 @loggify
@@ -23,30 +23,10 @@ class CPIOData:
 
         path = Path(path)
         kwargs['path'] = path
-
-        # First get the mode from the file type
-        if path.is_symlink():
-            mode = CPIOModes.Symlink.value
-        elif path.is_dir():
-            mode = CPIOModes.Dir.value
-        elif path.is_file():
-            mode = CPIOModes.File.value
-        elif path.is_block_device():
-            mode = CPIOModes.BlockDev.value
-        elif path.is_dir():
-            mode = CPIOModes.Dir.value
-        elif path.is_char_device():
-            mode = CPIOModes.CharDev.value
-        elif path.is_fifo():
-            mode = CPIOModes.Fifo.value
-        else:
-            raise ValueError("Unknown file type: %s" % path)
-
         kwargs['name'] = str(path)
-        kwargs['mode'] = mode
+        kwargs['mode'] = mode_bytes_from_path(path)
 
         header = CPIOHeader(header_structure, logger=kwargs.pop('logger'), *args, **kwargs)
-
         return CPIOData.get_subtype(b'', header, *args, **kwargs)
 
     @staticmethod
@@ -54,12 +34,11 @@ class CPIOData:
         """
         Get the data type from the header
         """
-        mode = header.entry_mode
-        if mode in CPIOModes:
-            data_type = globals()[f'CPIO_{mode.name}']
-            logger = header.logger
-            return data_type(data, header, logger=logger, *args, **kwargs)
-        raise ValueError(f"Unknown CPIO entry mode: {mode}")
+        mode = header.mode_type
+        logger = header.logger
+        # Just attempt to get the data type from the mode name
+        data_type = globals()[f'CPIO_{mode.name}']
+        return data_type(data, header, logger=logger, *args, **kwargs)
 
     def __init__(self, data: bytes, header, *args, **kwargs):
         self.data = data

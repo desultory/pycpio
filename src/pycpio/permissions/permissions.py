@@ -23,6 +23,17 @@ class Permissions(Enum):
     XOTH = 0o000001  # Other execute
 
 
+def resolve_permissions(mode: bytes) -> set:
+    """
+    Resolves the permissions from the mode bytes.
+    """
+    perms = set()
+    for perm in Permissions:
+        if int(mode, 16) & perm.value == perm.value:
+            perms.add(perm)
+    return perms
+
+
 def print_permissions(passed_perms: set, extended=False) -> str:
     """
     Prints the permissions in a human readable format.

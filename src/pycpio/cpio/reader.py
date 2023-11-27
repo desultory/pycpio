@@ -87,7 +87,7 @@ class CPIOReader:
         header.get_name()
 
         # If it's the trailer, break
-        if header.name == 'TRAILER!!!' and not header.entry_mode:
+        if header.name == 'TRAILER!!!' and not header.mode_type:
             self.logger.info("Trailer detected at offset: %s" % self.offset)
             return
         return header

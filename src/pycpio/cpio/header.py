@@ -4,8 +4,8 @@ CPIO entry definition. Starts as just the header and then takes additional data.
 
 from zenlib.logging import loggify
 
-from pycpio.modes import CPIOModes
-from pycpio.permissions import Permissions, print_permissions
+from pycpio.modes import resolve_mode_bytes
+from pycpio.permissions import print_permissions, resolve_permissions
 from pycpio.magic import CPIOMagic
 from .common import pad_cpio
 
@@ -16,8 +16,6 @@ class CPIOHeader:
     CPIO entry, can be initialized from a segment of header data with or without a structure definition.
     from_path can be used to create a new CPIO header from a path on the host system.
     """
-    _ignore_mode_permissions = [CPIOModes.CharDev]
-
     def __init__(self, header_structure, *args, **kwargs):
         self.structure = header_structure
         self.permissions = set()
@@ -51,8 +49,9 @@ class CPIOHeader:
 
         super().__setattr__(key, value)
 
-        if key == 'mode' and hasattr(self, 'filesize'):
-            self.resolve_mode()
+        if key == 'mode':
+            self.mode_type = resolve_mode_bytes(self.mode)
+            self.permissions = resolve_permissions(self.mode)
 
         if key == 'name':
             self.namesize = len(value) + 1
@@ -120,42 +119,6 @@ class CPIOHeader:
             else:
                 setattr(self, key, data)
                 self.logger.debug("Parsed %s: %s", key, data)
-        # Calculate permissions from the mode
-        self.resolve_mode()
-
-    def resolve_mode(self):
-        """
-        Resolve the mode field.
-        """
-        if self.mode == b'0' * 8:
-            self.logger.debug("Mode is 0, setting entry_mode to None")
-            self.entry_mode = None
-            return
-
-        for mode_type in CPIOModes:
-            if (mode_type.value & int(self.mode, 16)) == mode_type.value:
-                self.entry_mode = mode_type
-                break
-        else:
-            raise ValueError("Unable to resolve mode: %s" % self.mode)
-
-        if not getattr(self, 'filesize', 0) and self.entry_mode not in [CPIOModes.Dir, CPIOModes.Symlink, CPIOModes.CharDev]:
-            raise ValueError("Mode cannot have filesize of 0: %s" % self.entry_mode)
-
-        self.resolve_permissions()
-
-    def resolve_permissions(self):
-        """
-        Resolve the permissions field.
-        """
-        # check if any of the ignored modes are i self.modes
-        if self.entry_mode in self._ignore_mode_permissions:
-            self.logger.debug("Ignoring permissions for mode: %s", self.entry_mode)
-            return
-
-        for perm_type in Permissions:
-            if (perm_type.value & int(self.mode, 16)) == perm_type.value:
-                self.permissions.add(perm_type)
 
     def get_name(self):
         """
