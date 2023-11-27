@@ -1,7 +1,7 @@
 
 from zenlib.logging import loggify
 
-from .common import pad_cpio
+from .common import pad_cpio, get_new_inode
 from .header import CPIOHeader
 from pycpio.magic import CPIOMagic
 
@@ -32,8 +32,13 @@ class CPIOWriter:
         offset = 0
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries.values():
+                # IDK if i want to do hardlink stuff here or in the PyCpio class
+                # That class manages the CPIOData objects, as well as duplicate detection
+                # If data is passed to the writer, it should try to write it
                 if entry.header.ino in inodes:
-                    raise ValueError(f"Duplicate inode: {entry.header.ino}")
+                    self.logger.warning(f"Duplicate inode: {entry.header.ino}")
+                    entry.header.ino = get_new_inode(inodes)
+                    self.logger.info(f"New inode: {entry.header.ino}")
                 inodes.add(entry.header.ino)
                 entry_bytes = bytes(entry)
                 padding = pad_cpio(len(entry_bytes))
