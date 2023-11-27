@@ -53,6 +53,25 @@ class PyCPIO:
 
         self.entries[entry.header.name] = entry
 
+    def remove_cpio(self, name: str):
+        """
+        Removes an entry from the CPIO archive.
+        """
+        if name not in self.entries:
+            if path := Path(name).resolve():
+                if path.is_absolute():
+                    path = path.relative_to(path.anchor)
+                self.logger.debug("Resolved entry path: %s" % path)
+
+                name = str(path)
+                if name not in self.entries:
+                    self.logger.info("Current entries: %s" % self.list_files())
+                    raise ValueError(f"Entry not found: {name}")
+            else:
+                raise ValueError(f"Entry not found: {name}")
+
+        self.logger.info("Removed entry: %s" % self.entries.pop(name))
+
     def write_cpio_file(self, file_path: Union[Path, str]):
         """
         Writes a CPIO archive to file.

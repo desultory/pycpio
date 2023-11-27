@@ -50,6 +50,9 @@ def main():
     if args.input:
         c.read_cpio_file(Path(args.input))
 
+    if args.rm:
+        c.remove_cpio(args.rm)
+
     if args.append:
         c.append_cpio(Path(args.append))
 
