@@ -28,6 +28,34 @@ class CPIOHeader:
 
         self.process_overrides(overrides)
 
+    def from_args(self, *args, **kwargs) -> None:
+        """
+        Initialize the object from the arguments.
+        """
+        self.structure = kwargs.pop('structure', HEADER_NEW)
+        self.name = kwargs.pop('name')
+
+        for name, length in self.structure.items():
+            if name in ['magic', 'namesize']:
+                continue
+            value = kwargs.pop(name, length * b'0')
+            setattr(self, name, value)
+
+        self.magic = get_magic_from_header(self.structure)
+
+    def from_bytes(self, data: bytes) -> None:
+        if hasattr(self, 'data'):
+            raise ValueError("CPIOEntry already initialized")
+
+        if len(data) != 110:
+            raise ValueError("CPIO header must be 110 bytes, got length: %s" % len(data))
+
+        self.data = data
+        self.offset = 0  # Current offset in the data
+
+        # Header processing
+        self.parse_header()  # Parse the header
+
     def __setattr__(self, key, value):
         """
         If the key is in the structure, set the value to the bytes representation.
@@ -99,34 +127,6 @@ class CPIOHeader:
         """
         self.logger.debug("Adding data: %s", additional_data)
         self.data += additional_data
-
-    def from_args(self, *args, **kwargs) -> None:
-        """
-        Initialize the object from the arguments.
-        """
-        self.structure = kwargs.pop('structure', HEADER_NEW)
-        self.name = kwargs.pop('name')
-
-        for name, length in self.structure.items():
-            if name in ['magic', 'namesize']:
-                continue
-            value = kwargs.pop(name, length * b'0')
-            setattr(self, name, value)
-
-        self.magic = get_magic_from_header(self.structure)
-
-    def from_bytes(self, data: bytes) -> None:
-        if hasattr(self, 'data'):
-            raise ValueError("CPIOEntry already initialized")
-
-        if len(data) != 110:
-            raise ValueError("CPIO header must be 110 bytes, got length: %s" % len(data))
-
-        self.data = data
-        self.offset = 0  # Current offset in the data
-
-        # Header processing
-        self.parse_header()  # Parse the header
 
     def parse_header(self):
         """

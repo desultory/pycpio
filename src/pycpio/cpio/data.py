@@ -64,8 +64,8 @@ class CPIOData:
                 raise NotImplementedError(f"Unknown mode type: {mode.name}")
 
     def __init__(self, data: bytes, header, *args, **kwargs):
-        self.data = data
         self.header = header
+        self.data = data
 
     def __str__(self):
         out_str = f"\n{self.header}"

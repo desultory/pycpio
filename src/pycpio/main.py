@@ -24,7 +24,9 @@ def main():
     parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
     parser.add_argument('-n', '--name', action='store', help='Name/path override for append')
 
-    parser.add_argument('-s', '--set-owner', action='store', help='set UID on all files')
+    parser.add_argument('-s', '--symlink', action='store', help='create symlink')
+
+    parser.add_argument('-u', '--set-owner', action='store', help='set UID on all files')
     parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
     parser.add_argument('-m', '--set-mode', action='store', help='set mode on all files')
 
@@ -71,6 +73,11 @@ def main():
 
     if args.rm:
         c.remove_cpio(args.rm)
+
+    if args.symlink:
+        if not args.name:
+            raise ValueError('Symlink requires a name')
+        c.add_symlink(args.name, args.symlink)
 
     if args.append:
         c.append_cpio(Path(args.append))
