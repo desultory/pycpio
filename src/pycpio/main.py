@@ -26,6 +26,7 @@ def main():
 
     parser.add_argument('-s', '--set-owner', action='store', help='set UID on all files')
     parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
+    parser.add_argument('-m', '--set-mode', action='store', help='set mode on all files')
 
     parser.add_argument('-o', '--output', help='output file')
 
@@ -60,6 +61,9 @@ def main():
 
     if args.set_group:
         kwargs['gid'] = int(args.set_group)
+
+    if args.set_mode:
+        kwargs['mode'] = int(args.set_mode, 8)
 
     c = PyCPIO(**kwargs)
     if args.input:
