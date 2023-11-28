@@ -22,6 +22,7 @@ def main():
 
     parser.add_argument('-a', '--append', action='store', help='append to archive')
     parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
+    parser.add_argument('-n', '--name', action='store', help='Name/path override for append')
 
     parser.add_argument('-s', '--set-owner', action='store', help='set UID on all files')
     parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
@@ -50,6 +51,9 @@ def main():
         logger.setLevel(20)
 
     kwargs = {'logger': logger}
+
+    if args.name:
+        kwargs['name'] = args.name
 
     if args.set_owner:
         kwargs['uid'] = int(args.set_owner)

@@ -24,7 +24,6 @@ class CPIOWriter:
         Writes the CPIOData objects to the output file.
         """
         inodes = set()
-        self.logger.info(f"Writing CPIO archive to {self.output_file}")
         offset = 0
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries.values():
@@ -37,15 +36,18 @@ class CPIOWriter:
                     entry.header.ino = get_new_inode(inodes)
                     self.logger.info(f"New inode: {entry.header.ino}")
                 inodes.add(entry.header.ino)
+
                 entry_bytes = bytes(entry)
                 padding = pad_cpio(len(entry_bytes))
                 output_bytes = entry_bytes + b'\x00' * padding
+
                 f.write(output_bytes)
                 self.logger.debug("[%d] Wrote '%d' bytes for: %s" % (offset, len(output_bytes), entry.header.name))
                 offset += len(output_bytes)
             trailer = CPIOHeader(structure=self.structure, name="TRAILER!!!", logger=self.logger, _log_init=False)
             self.logger.debug("Writing trailer: %s" % trailer)
             f.write(bytes(trailer))
+            offset += len(bytes(trailer))
 
-        self.logger.info("Finished writing CPIO archive")
+        self.logger.info("Wrote %d bytes to: %s" % (offset, self.output_file))
 

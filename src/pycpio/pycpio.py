@@ -17,16 +17,17 @@ class PyCPIO:
     """
     A class for reading CPIO archives.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, name=None, *args, **kwargs):
+        self.structure = structure
         self.overrides = {}
         self.entries = {}
 
-        self.structure = kwargs.pop('structure', HEADER_NEW)
+        self.name = name
 
-        for name in self.structure:
-            if value := kwargs.pop(name, None):
-                self.logger.info("[%s] Setting override: %s" % (name, value))
-                self.overrides[name] = value
+        for attr in self.structure:
+            if value := kwargs.pop(attr, None):
+                self.logger.info("[%s] Setting override: %s" % (attr, value))
+                self.overrides[attr] = value
 
     def read_cpio_file(self, file_path: Path):
         """
@@ -47,7 +48,8 @@ class PyCPIO:
         """
         Appends a file or directory to the CPIO archive.
         """
-        entry = CPIOData.from_path(path, self.structure, logger=self.logger, _log_init=False)
+        kwargs = {'name': self.name, 'logger': self.logger, '_log_init': False, 'overrides': self.overrides}
+        entry = CPIOData.from_path(path, self.structure, **kwargs)
 
         if entry.header.name in self.entries:
             raise ValueError(f"Duplicate entry: {entry.header.name}")

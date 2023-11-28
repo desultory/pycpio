@@ -23,7 +23,7 @@ class CPIOData:
 
         path = Path(path)
         kwargs['path'] = path
-        kwargs['name'] = str(path).encode('ascii')
+        kwargs['name'] = kwargs.pop('name', str(path))
         kwargs['mode'] = mode_bytes_from_path(path)
         kwargs['structure'] = header_structure
 

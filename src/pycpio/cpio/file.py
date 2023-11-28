@@ -21,7 +21,7 @@ class CPIO_File(CPIOData):
             self.header.filesize = format(len(self.data), '08x').encode('ascii')
             self.header.mtime = path.resolve().stat().st_mtime
             self.header.mode = int(self.header.mode, 16) | (path.stat().st_mode & 0o777)
-            if path.is_absolute():
+            if not kwargs.get('name') and path.is_absolute():
                 self.header.name = str(path.relative_to(path.anchor))
 
 

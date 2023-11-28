@@ -47,7 +47,7 @@ class CPIOReader:
 
     def read_cpio_file(self):
         """ Reads a CPIO archive. """
-        self.logger.info("Reading CPIO archive: %s" % self.file_path)
+        self.logger.debug("Reading file: %s" % self.file_path)
         with open(self.file_path, 'rb') as cpio_file:
             self.cpio_file = cpio_file.read()
             self.logger.info("[%s] Read bytes: %s" % (self.file_path, len(self.cpio_file)))
@@ -90,7 +90,6 @@ class CPIOReader:
                           'header': header, '_log_init': False}
                 yield CPIOData.get_subtype(**kwargs)
             else:
-                self.logger.info("Reached end of CPIO archive")
                 break
         else:
             self.logger.warning("Reached end of file without finding trailer")
