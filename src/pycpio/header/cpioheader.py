@@ -77,7 +77,7 @@ class CPIOHeader:
                 self.logger.log(5, "[%s] Pre-override: %s" % (attribute, getattr(self, attribute)))
                 if attribute == 'mode':
                     # Mask the mode, then add the override
-                    value = (int(self.mode, 16) & 0o7777000) | overrides[attribute]
+                    value = (int(self.mode, 16) & 0o7777000) | (overrides[attribute] & 0o777)
                 else:
                     value = overrides[attribute]
                 self.logger.debug("[%s] Setting override: %s" % (attribute, value))
