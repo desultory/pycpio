@@ -84,15 +84,15 @@ def main():
         c.add_symlink(args.name, args.symlink)
 
     if args.chardev:
-        path = args.chardev
-        if args.name:
-            path = args.name
         if not args.rdevmajor or not args.rdevminor:
             raise ValueError('Character device requires major and minor numbers')
-        c.add_chardev(path, int(args.rdevmajor), int(args.rdevminor))
+        c.add_chardev(args.chardev, int(args.rdevmajor), int(args.rdevminor))
 
     if args.append:
-        c.append_cpio(Path(args.append))
+        if args.name:
+            c.append_cpio(Path(args.append), args.name)
+        else:
+            c.append_cpio(Path(args.append))
 
     if args.output:
         c.write_cpio_file(Path(args.output))
