@@ -15,6 +15,10 @@ class CPIOArchive(dict):
             raise AttributeError("Entry already exists: %s" % name)
         super().__setitem__(name, value)
 
+    def __contains__(self, name):
+        """ Check if an entry exists in the archive """
+        return super().__contains__(self._normalize_name(name))
+
     def __init__(self, structure=HEADER_NEW, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.structure = structure

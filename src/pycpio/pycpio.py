@@ -42,17 +42,7 @@ class PyCPIO:
         Removes an entry from the CPIO archive.
         """
         if name not in self.entries:
-            if path := Path(name).resolve():
-                if path.is_absolute():
-                    path = path.relative_to(path.anchor)
-                self.logger.debug("Resolved entry path: %s" % path)
-
-                name = str(path)
-                if name not in self.entries:
-                    self.logger.info("Current entries: %s" % self.entries)
-                    raise ValueError(f"Entry not found: {name}")
-            else:
-                raise ValueError(f"Entry not found: {name}")
+            raise ValueError(f"Entry not found: {name}")
 
         self.entries.pop(name)
         self.logger.info("Removed entry: %s" % self.entries.pop(name))
