@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union
 from importlib.metadata import version
 
-from pycpio.cpio import CPIOData, create_entry
+from pycpio.cpio import CPIOArchive, CPIOData, create_entry
 from pycpio.masks import CPIOModes
 from pycpio.header import HEADER_NEW
 from pycpio.writer import CPIOWriter
@@ -21,7 +21,7 @@ class PyCPIO:
     def __init__(self, structure=HEADER_NEW, name=None, *args, **kwargs):
         self.structure = structure
         self.overrides = {}
-        self.entries = {}
+        self.entries = CPIOArchive(self.structure, logger=self.logger, _log_init=False)
 
         self.name = name
 
@@ -35,12 +35,7 @@ class PyCPIO:
         Appends a file or directory to the CPIO archive.
         """
         kwargs = {'name': self.name, 'logger': self.logger, '_log_init': False, 'overrides': self.overrides}
-        entry = CPIOData.from_path(path, self.structure, **kwargs)
-
-        if entry.header.name in self.entries:
-            raise ValueError(f"Duplicate entry: {entry.header.name}")
-
-        self.entries[entry.header.name] = entry
+        self.entries.add_entry(CPIOData.from_path(path, self.structure, **kwargs))
 
     def remove_cpio(self, name: str):
         """
@@ -59,18 +54,20 @@ class PyCPIO:
             else:
                 raise ValueError(f"Entry not found: {name}")
 
+        self.entries.pop(name)
         self.logger.info("Removed entry: %s" % self.entries.pop(name))
 
     def add_symlink(self, name: str, target: str):
         """
         Adds a symlink to the CPIO archive.
         """
-        if name in self.entries:
-            raise ValueError("Duplicate entry: %s" % name)
+        self._build_cpio_entry(name=name, entry_type=CPIOModes['Symlink'].value, data=target)
 
-        symlink = self._build_cpio_entry(name=name, entry_type=CPIOModes['Symlink'].value, data=target)
-        self.logger.info("Created symlink entry: %s" % symlink)
-        self.entries[name] = symlink
+    def add_chardev(self, name: str, major: int, minor: int):
+        """
+        Adds a character device to the CPIO archive.
+        """
+        self._build_cpio_entry(name=name, entry_type=CPIOModes['CharDev'].value, rdevmajor=major, rdevminor=minor)
 
     def read_cpio_file(self, file_path: Path):
         """
@@ -81,8 +78,6 @@ class PyCPIO:
 
         for name, entry in reader.entries.items():
             self.logger.debug("[%s]Read CPIO entry: %s" % (file_path.name, entry))
-            if name in self.entries:
-                raise ValueError("Duplicate entry: %s" % entry.header.name)
             if entry.header.structure != self.structure:
                 raise ValueError("Entry structure does not match archive structure: %s" % entry)
             self.entries[name] = entry
@@ -105,15 +100,17 @@ class PyCPIO:
         """
         return '\n'.join([name for name in self.entries.keys()])
 
-    def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None):
+    def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None, **kwargs):
         """
         Creates a CPIOData object and adds it to the CPIO archive.
         """
         kwargs = {'name': name, 'structure': self.structure, 'mode': entry_type, 'data': data,
-                  'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
+                  'overrides': self.overrides, 'logger': self.logger, '_log_init': False, **kwargs}
 
         self.logger.debug("Building CPIO entry: %s" % kwargs)
-        return create_entry(**kwargs)
+        entry = create_entry(**kwargs)
+        self.logger.info("Built %s entry: %s" % (type(entry).__name__, entry))
+        self.entries.add_entry(entry)
 
     def __str__(self):
         return "\n".join([str(f) for f in self.entries.values()])

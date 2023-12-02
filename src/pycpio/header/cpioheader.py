@@ -6,9 +6,6 @@ CPIO header class definition.
 from zenlib.logging import loggify
 
 from pycpio.masks import resolve_mode_bytes, print_permissions, resolve_permissions
-from .header_funcs import get_header_from_magic, get_magic_from_header
-from .headers import HEADER_NEW
-from pycpio.cpio import pad_cpio
 
 
 @loggify
@@ -32,6 +29,9 @@ class CPIOHeader:
         """
         Initialize the object from the arguments.
         """
+        from .header_funcs import get_magic_from_header
+        from .headers import HEADER_NEW
+
         self.structure = kwargs.pop('structure', HEADER_NEW)
         self.name = kwargs.pop('name')
 
@@ -92,8 +92,8 @@ class CPIOHeader:
 
             # Add space for the null byte
             namesize = len(value) + 1
-            if hasattr(self, 'namesize') and namesize != self.namesize:
-                self.logger.debug("Name size changed: %s -> %s" % (namesize, self.namesize))
+            if hasattr(self, 'namesize') and namesize != int(self.namesize, 16):
+                self.logger.debug("Name size changed: %s -> %s" % (int(self.namesize, 16), namesize))
             self.namesize = namesize
 
     def process_overrides(self, overrides: dict) -> None:
@@ -117,7 +117,6 @@ class CPIOHeader:
         Increments the offset.
         """
         data = self.data[self.offset:self.offset + num_bytes]
-        self.logger.log(5, "Read %s bytes: %s", num_bytes, data)
         self.offset += num_bytes
         return data
 
@@ -133,10 +132,9 @@ class CPIOHeader:
         Parse the data according to the structure.
         Sets attributes on the object.
         """
+        from .header_funcs import get_header_from_magic
         self.structure = get_header_from_magic(self.data[:6])
         for key, length in self.structure.items():
-            self.logger.log(5, "Offset: %s, Length: %s", self.offset, length)
-
             # Read the data, convert to int
             data = self._read_bytes(length)
 
@@ -160,6 +158,7 @@ class CPIOHeader:
         """
         Returns the bytes representation of the object.
         """
+        from pycpio.cpio import pad_cpio
         out_bytes = b''
         # Get the bytes for each attribute
         for attr, value in self.structure.items():

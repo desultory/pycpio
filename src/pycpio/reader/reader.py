@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Union
 
-from pycpio.cpio import pad_cpio, CPIOData
+from pycpio.cpio import CPIOArchive, pad_cpio, CPIOData
 from pycpio.header import CPIOHeader
 from zenlib.logging import loggify
 
@@ -14,15 +14,13 @@ class CPIOReader:
     Takes a file path as input, and reads it into self.raw_cpio.
 
     Once processed, the files are stored in self.entries, which is a dictionary of CPIO entries.
-
-    Each entry is processed individually, the reader keeps no state of CPIO header structure.
     """
     def __init__(self, input_file: Union[Path, str], overrides={}, *args, **kwargs):
         self.file_path = Path(input_file)
         assert self.file_path.exists(), "File does not exist: %s" % self.file_path
 
         self.overrides = overrides
-        self.entries = {}
+        self.entries = CPIOArchive(logger=self.logger, _log_init=False)
 
         self.read_cpio_file()
         self.process_cpio_file()
@@ -97,9 +95,4 @@ class CPIOReader:
     def process_cpio_file(self):
         """ Processes a CPIO archive."""
         for cpio_entry in self.process_cpio_data():
-            name = cpio_entry.header.name
-            if name in self.entries:
-                self.logger.debug("Current entries: %s" % self.entries)
-                raise ValueError("Duplicate entry found: %s" % name)
-            self.entries[name] = cpio_entry
-            self.logger.debug("Added entry: %s" % cpio_entry)
+            self.entries.add_entry(cpio_entry)
