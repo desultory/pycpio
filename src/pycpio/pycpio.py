@@ -41,10 +41,6 @@ class PyCPIO:
         """
         Removes an entry from the CPIO archive.
         """
-        if name not in self.entries:
-            raise ValueError(f"Entry not found: {name}")
-
-        self.entries.pop(name)
         self.logger.info("Removed entry: %s" % self.entries.pop(name))
 
     def add_symlink(self, name: str, target: str):
@@ -65,22 +61,13 @@ class PyCPIO:
         """
         kwargs = {'input_file': file_path, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
         reader = CPIOReader(**kwargs)
-
-        for name, entry in reader.entries.items():
-            self.logger.debug("[%s]Read CPIO entry: %s" % (file_path.name, entry))
-            if entry.header.structure != self.structure:
-                raise ValueError("Entry structure does not match archive structure: %s" % entry)
-            self.entries[name] = entry
+        self.entries.add_entry(reader.entries.values())
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """
         Writes a CPIO archive to file.
         """
-        kwargs = {'logger': self.logger, '_log_init': False}
-
-        if hasattr(self, 'structure'):
-            kwargs['structure'] = self.structure
-
+        kwargs = {'logger': self.logger, 'structure': self.structure, '_log_init': False}
         writer = CPIOWriter(self.entries, file_path, **kwargs)
         writer.write()
 

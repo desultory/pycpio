@@ -3,6 +3,7 @@ Collection of CPIOData objects
 """
 
 from zenlib.logging import loggify
+from zenlib.util import handle_plural
 
 
 @loggify
@@ -23,10 +24,18 @@ class CPIOArchive(dict):
         super().__init__(*args, **kwargs)
         self.structure = structure
 
+    def pop(self, name):
+        """ Remove an entry from the archive """
+        try:
+            return super().pop(self._normalize_name(name))
+        except KeyError:
+            raise KeyError("Entry does not exist: %s" % name)
+
     def _normalize_name(self, name):
         """ Make all names relative to the archive root """
         return name.lstrip("/")
 
+    @handle_plural
     def add_entry(self, data: CPIOData):
         """ Add a new entry to the archive """
         entry_name = self._normalize_name(data.header.name)
