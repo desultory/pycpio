@@ -23,10 +23,20 @@ class CPIOData:
         if not path.is_dir():
             raise ValueError("Path is not a directory: %s" % path)
 
-        if relative:
+        if relative is True:
+            relative = path
+        elif relative:
             relative = Path(relative).resolve()
 
+        if relative:
+            kwargs['name'] = str(path.relative_to(relative))
+        else:
+            kwargs['name'] = str(path)
+
         data = []
+        data.append(CPIOData.from_path(path=path, relative=relative, *args, **kwargs))
+        if logger := kwargs.get('logger'):
+            logger.warning(data[0])
         for child in path.iterdir():
             if parent:
                 child_path = parent / child
@@ -42,7 +52,6 @@ class CPIOData:
                 data.extend(CPIOData.from_dir(path=child_path, parent=parent, relative=relative, *args, **kwargs))
             else:
                 data.append(CPIOData.from_path(path=child_path, relative=relative, *args, **kwargs))
-
         return data
 
     @staticmethod
@@ -55,9 +64,18 @@ class CPIOData:
         """
         from pycpio.header import CPIOHeader
 
-        path = Path(path).resolve()
+        path = Path(path)
         if logger := kwargs.get('logger'):
             logger.debug(f"Creating CPIO entry from path: {path}")
+
+        relative = Path(relative).resolve() if relative else None
+        if logger := kwargs.get('logger'):
+            logger.debug("Creating CPIO entry relative to path: %s", relative)
+
+        if not path.is_symlink():
+            path = path.resolve()
+            if not path.exists():
+                raise ValueError("Path does not exist: %s" % path)
 
         kwargs['path'] = path
         if name := kwargs.pop('name', None):
@@ -70,11 +88,13 @@ class CPIOData:
 
         kwargs['mode'] = mode_bytes_from_path(path)
 
+        data = b''
+
         header = CPIOHeader(*args, **kwargs)
-        data = CPIOData.get_subtype(b'', header, *args, **kwargs)
+        data = CPIOData.get_subtype(data, header, *args, **kwargs)
 
         if logger := kwargs.get('logger'):
-            logger.info(f"Created CPIO entry from path: {data}")
+            logger.debug(f"Created CPIO entry from path: {data}")
 
         return data
 

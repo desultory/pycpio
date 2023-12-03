@@ -25,6 +25,7 @@ class CPIOWriter:
         """
         inodes = set()
         offset = 0
+        self.logger.debug("Writing to: %s" % self.output_file)
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries.values():
                 self.logger.log(5, "Writing entry: %s" % entry)

@@ -21,3 +21,7 @@ class CPIO_CharDev(CPIOData):
         if int(self.header.mode, 16) & 0o777 == 0:
             self.logger.debug("Setting mode to 644")
             self.header.mode = (int(self.header.mode, 16) & 0o7777000) | (0o644)
+
+    def __bytes__(self):
+        """ Just return the header """
+        return bytes(self.header)

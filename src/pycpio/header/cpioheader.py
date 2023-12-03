@@ -18,7 +18,7 @@ class CPIOHeader:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
         elif kwargs.get('name'):
-            self.logger.info("Creating CPIO Header with name: %s", kwargs['name'])
+            self.logger.debug("Creating CPIO Header with name: %s", kwargs['name'])
             self.from_args(*args, **kwargs)
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data or a name")

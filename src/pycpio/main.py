@@ -29,8 +29,8 @@ def main():
     parser.add_argument('-s', '--symlink', action='store', help='create symlink')
     parser.add_argument('-c', '--chardev', action='store', help='create character device')
 
-    parser.add_argument('--rdevmajor', action='store', help='major number for character/block device')
-    parser.add_argument('--rdevminor', action='store', help='minor number for character/block device')
+    parser.add_argument('--major', action='store', help='major number for character/block device')
+    parser.add_argument('--minor', action='store', help='minor number for character/block device')
 
     parser.add_argument('-u', '--set-owner', action='store', help='set UID on all files')
     parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
@@ -86,9 +86,9 @@ def main():
         c.add_symlink(args.name, args.symlink)
 
     if args.chardev:
-        if not args.rdevmajor or not args.rdevminor:
+        if not args.major or not args.minor:
             raise ValueError('Character device requires major and minor numbers')
-        c.add_chardev(args.chardev, int(args.rdevmajor), int(args.rdevminor))
+        c.add_chardev(args.chardev, int(args.major), int(args.minor))
 
     if args.append:
         relative = args.relative if args.relative else None

@@ -41,8 +41,6 @@ def mode_bytes_from_path(file_path: Path) -> CPIOModes:
     """
     if file_path.is_dir():
         return CPIOModes.Dir.value
-    elif file_path.is_file():
-        return CPIOModes.File.value
     elif file_path.is_symlink():
         return CPIOModes.Symlink.value
     elif file_path.is_block_device():
@@ -51,6 +49,8 @@ def mode_bytes_from_path(file_path: Path) -> CPIOModes:
         return CPIOModes.CharDev.value
     elif file_path.is_fifo():
         return CPIOModes.FIFO.value
+    elif file_path.is_file():
+        return CPIOModes.File.value
 
     raise ValueError(f"Invalid mode: {file_path}")
 

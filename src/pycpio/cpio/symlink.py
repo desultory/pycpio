@@ -18,7 +18,7 @@ class CPIO_Symlink(CPIOData):
             else:
                 raise ValueError("data must be a string or bytes")
 
-            if value[-1] != b'\0':
+            if value and value[-1] != b'\0':
                 value += b'\0'
             self.header.filesize = format(len(value), '08x').encode('ascii')
 
@@ -28,6 +28,9 @@ class CPIO_Symlink(CPIOData):
         super().__init__(*args, **kwargs)
         if path := kwargs.pop('path', None):
             self.data = str(path.readlink()).encode('ascii')
+            self.header.mtime = path.stat().st_mtime
+        elif self.data is None:
+            raise ValueError("path must be specified for symlinks")
 
         self.header.mode = 0o120777  # symlink mode
 

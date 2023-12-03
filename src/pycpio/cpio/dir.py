@@ -17,3 +17,6 @@ class CPIO_Dir(CPIOData):
             self.header.mtime = path.resolve().stat().st_mtime
             if path.is_absolute():
                 self.header.name = str(path.relative_to(path.anchor))
+
+        if name := kwargs.pop('name', None):
+            self.header.name = name
