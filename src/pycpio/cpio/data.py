@@ -18,6 +18,11 @@ class CPIOData:
     def from_dir(path: Path, parent=None, relative=None, *args, **kwargs):
         """
         Returns a list of CPIOData objects from a directory
+
+        If the path is a symlink, it will be resolved and the resolved path will be used.
+
+        If relative is set, the name will be relative to that path.
+        The path will be unaltered, since it is used for header stats and data.
         """
         path = Path(path).resolve()
         if not path.is_dir():
@@ -58,7 +63,11 @@ class CPIOData:
         Create a CPIOData object from a path.
         If a name is provided, it will be used instead of the resolved path.
 
-        If recursive is True, directories will be recursed into and all files will be added to the return list.
+        The path will be resolved, unless it is a symlink, in which case it will be used as is.
+
+        The name will be changed to be relative to the relative path, if provided.
+
+        If absolute is set, the path is _allowed_ to be absolute, otherwise, the leading slash will be stripped.
         """
         from pycpio.header import CPIOHeader
 
@@ -106,7 +115,8 @@ class CPIOData:
     @staticmethod
     def create_entry(name: str, *args, **kwargs):
         """
-        Create a CPIOData object from a path
+        Create a custom CPIO entry using names and args which are parsed by the header.
+        Using the created header, the data type is determined and the appropriate object is returned.
         """
         from time import time
         from pycpio.header import CPIOHeader
@@ -127,7 +137,7 @@ class CPIOData:
     @staticmethod
     def get_subtype(data: bytes, header, *args, **kwargs):
         """
-        Get the data type from the header
+        Get the appropriate subtype for the data based on the header mode type.
         """
         # Imports must be here so the module can be imported
         from .file import CPIO_File
