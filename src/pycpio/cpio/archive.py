@@ -14,7 +14,13 @@ class CPIOArchive(dict):
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError("Entry already exists: %s" % name)
+        if value.header.ino in self.inodes:
+            from .common import get_new_inode
+            self.logger.debug("Inode already exists: %s", value.header.ino)
+            value.header.ino = get_new_inode(self.inodes)
+            self.logger.debug("New inode: %s", value.header.ino)
         super().__setitem__(name, value)
+        self.inodes.add(value.header.ino)
 
     def __contains__(self, name):
         """ Check if an entry exists in the archive """
@@ -23,6 +29,7 @@ class CPIOArchive(dict):
     def __init__(self, structure=HEADER_NEW, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.structure = structure
+        self.inodes = set()
 
     def pop(self, name):
         """ Remove an entry from the archive """

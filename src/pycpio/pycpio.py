@@ -44,9 +44,9 @@ class PyCPIO:
         """ Adds a symlink to the CPIO archive. """
         self._build_cpio_entry(name=name, entry_type=CPIOModes['Symlink'].value, data=target)
 
-    def add_chardev(self, name: str, major: int, minor: int):
+    def add_chardev(self, name: str, major: int, minor: int, *args, **kwargs):
         """ Adds a character device to the CPIO archive. """
-        self._build_cpio_entry(name=name, entry_type=CPIOModes['CharDev'].value, rdevmajor=major, rdevminor=minor)
+        self._build_cpio_entry(name=name, entry_type=CPIOModes['CharDev'].value, rdevmajor=major, rdevminor=minor, *args, **kwargs)
 
     def read_cpio_file(self, file_path: Path):
         """ Creates a CPIOReader object and reads the file. """
@@ -64,12 +64,16 @@ class PyCPIO:
         """ Returns a list of files in the CPIO archive. """
         return '\n'.join([name for name in self.entries.keys()])
 
-    def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None, **kwargs):
+    def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None, *args, **kwargs):
         """ Creates a CPIOData object and adds it to the CPIO archive. """
+        overrides = self.overrides.copy()
+        if mode := kwargs.pop('mode', None):
+            overrides['mode'] = mode
+            self.logger.info("Setting override: mode=%s" % mode)
         kwargs = {'name': name, 'structure': self.structure, 'mode': entry_type, 'data': data,
-                  'overrides': self.overrides, 'logger': self.logger, '_log_init': False, **kwargs}
+                  'overrides': overrides, 'logger': self.logger, '_log_init': False, **kwargs}
 
-        self.entries.add_entry(CPIOData.create_entry(**kwargs))
+        self.entries.add_entry(CPIOData.create_entry(*args, **kwargs))
 
     def __str__(self):
         return "\n".join([str(f) for f in self.entries.values()])

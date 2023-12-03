@@ -35,8 +35,6 @@ class CPIOData:
 
         data = []
         data.append(CPIOData.from_path(path=path, relative=relative, *args, **kwargs))
-        if logger := kwargs.get('logger'):
-            logger.warning(data[0])
         for child in path.iterdir():
             if parent:
                 child_path = parent / child

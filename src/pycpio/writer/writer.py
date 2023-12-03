@@ -1,7 +1,7 @@
 
 from zenlib.logging import loggify
 
-from pycpio.cpio import pad_cpio, get_new_inode
+from pycpio.cpio import pad_cpio
 from pycpio.header import CPIOHeader, HEADER_NEW
 
 from pathlib import Path
@@ -33,9 +33,7 @@ class CPIOWriter:
                 # That class manages the CPIOData objects, as well as duplicate detection
                 # If data is passed to the writer, it should try to write it
                 if entry.header.ino in inodes:
-                    self.logger.warning(f"Duplicate inode: {entry.header.ino}")
-                    entry.header.ino = get_new_inode(inodes)
-                    self.logger.info(f"New inode: {entry.header.ino}")
+                    raise ValueError(f"Duplicate inode: {entry.header.ino}")
                 inodes.add(entry.header.ino)
 
                 entry_bytes = bytes(entry)
