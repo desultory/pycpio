@@ -15,9 +15,43 @@ class CPIOData:
     Generic object for CPIO data
     """
     @staticmethod
-    def from_path(path: Path, structure, *args, **kwargs):
+    def from_dir(path: Path, structure, parent=None, relative=None, *args, **kwargs):
         """
-        Create a CPIOData object from a path
+        Returns a list of CPIOData objects from a directory
+        """
+        path = Path(path).resolve()
+        if not path.is_dir():
+            raise ValueError("Path is not a directory: %s" % path)
+
+        if relative:
+            relative = Path(relative).resolve()
+
+        data = []
+        for child in path.iterdir():
+            if parent:
+                child_path = parent / child
+            else:
+                child_path = child
+
+            if relative:
+                kwargs['name'] = str(child_path.relative_to(relative))
+            else:
+                kwargs['name'] = str(child_path)
+
+            if child.is_dir():
+                data.extend(CPIOData.from_dir(child_path, structure, parent, relative, *args, **kwargs))
+            else:
+                data.append(CPIOData.from_path(child_path, structure, relative, *args, **kwargs))
+
+        return data
+
+    @staticmethod
+    def from_path(path: Path, structure, relative: None, *args, **kwargs):
+        """
+        Create a CPIOData object from a path.
+        If a name is provided, it will be used instead of the resolved path.
+
+        If recursive is True, directories will be recursed into and all files will be added to the return list.
         """
         from pycpio.header import CPIOHeader
 
@@ -26,7 +60,14 @@ class CPIOData:
             logger.debug(f"Creating CPIO entry from path: {path}")
 
         kwargs['path'] = path
-        kwargs['name'] = kwargs.pop('name', str(path))
+        if name := kwargs.pop('name', None):
+            kwargs['name'] = name
+        else:
+            if relative:
+                kwargs['name'] = str(path.relative_to(relative))
+            else:
+                kwargs['name'] = str(path)
+
         kwargs['mode'] = mode_bytes_from_path(path)
         kwargs['structure'] = structure
 
