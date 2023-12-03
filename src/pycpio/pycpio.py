@@ -69,7 +69,7 @@ class PyCPIO:
         overrides = self.overrides.copy()
         if mode := kwargs.pop('mode', None):
             overrides['mode'] = mode
-            self.logger.info("Setting override: mode=%s" % mode)
+            self.logger.debug("Setting override: mode=%s" % mode)
         kwargs = {'name': name, 'structure': self.structure, 'mode': entry_type, 'data': data,
                   'overrides': overrides, 'logger': self.logger, '_log_init': False, **kwargs}
 
