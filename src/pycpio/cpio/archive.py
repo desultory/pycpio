@@ -19,6 +19,11 @@ class CPIOArchive(dict):
             from .symlink import CPIO_Symlink
             if isinstance(value, CPIO_Symlink):
                 self.logger.debug("[%s] Symlink inode already exists: %s" % (value.header.name, value.header.ino))
+            elif self[self.inodes[value.header.ino]].data == value.data:
+                self.logger.info("[%s] Hardlink detected, removing data." % value.header.name)
+                value.data = b''
+                value.header.nlink = int(value.header.nlink, 16) + 1
+                self[self.inodes[value.header.ino]].header.nlink = value.header.nlink
             else:
                 self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
                 value.header.ino = get_new_inode(self.inodes)

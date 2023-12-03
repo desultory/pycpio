@@ -24,6 +24,8 @@ class CPIOHeader:
             raise NotImplementedError("CPIOEntry must be initialized with header data or a name")
 
         self.process_overrides(overrides)
+        # Set nlink to 1, additions are made in the CPIOArchive class
+        self.nlink = b'00000001'
 
     def from_args(self, *args, **kwargs) -> None:
         """
@@ -73,6 +75,10 @@ class CPIOHeader:
                 raise ValueError("Unable to convert %s to bytes: %s" % (key, value))
             value = value.encode('ascii')
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
+
+        if key == 'filesize' and value != b'00000000':
+            if getattr(self, 'filesize', None) not in [value, b'00000000']:
+                self.logger.warning("[%s] Overriding changedsize: %s -> %s" % (self.name, self.filesize, value))
 
         super().__setattr__(key, value)
 
@@ -180,9 +186,12 @@ class CPIOHeader:
         out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure:
-            if attr in ['ino', 'mode', 'nlink', 'devmajor', 'devminor',
+            if attr in ['ino', 'mode', 'devmajor', 'devminor',
                         'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
+            elif attr == 'nlink':
+                if int(self.nlink, 16) > 1:
+                    out_str += f"    {attr}: {int(self.nlink, 16)}\n"
             elif attr == 'magic':
                 out_str += f"    {attr}: {self.magic}\n"
             elif attr == 'mtime':
