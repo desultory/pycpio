@@ -161,7 +161,7 @@ class CPIOData:
     def __setattr__(self, name, value):
         """ Setattr, mostly for making sure the header filesize matches the data length """
         super().__setattr__(name, value)
-        if name == 'data':
+        if name == 'data' and value:
             self.header.filesize = len(value)
 
     def __init__(self, data: bytes, header, *args, **kwargs):
