@@ -70,12 +70,14 @@ class CPIOData:
         if logger := kwargs.get('logger'):
             logger.debug("Creating CPIO entry relative to path: %s", relative)
 
+        # Unless the path is a symlink, resolve it
         if not path.is_symlink():
             path = path.resolve()
             if not path.exists():
                 raise ValueError("Path does not exist: %s" % path)
 
         kwargs['path'] = path
+        # If a name is provided, use it, otherwise, use the path, if relative is provided, use the relative path
         if name := kwargs.pop('name', None):
             kwargs['name'] = name
         else:
@@ -84,12 +86,17 @@ class CPIOData:
             else:
                 kwargs['name'] = str(path)
 
+        if not kwargs.pop('absolute', False):
+            kwargs['name'] = kwargs['name'].lstrip('/')
+
+        # Get the inode number from the path
+        kwargs['ino'] = path.stat().st_ino
+
+        # Get the mode type from the supplied path
         kwargs['mode'] = mode_bytes_from_path(path)
 
-        data = b''
-
         header = CPIOHeader(*args, **kwargs)
-        data = CPIOData.get_subtype(data, header, *args, **kwargs)
+        data = CPIOData.get_subtype(b'', header, *args, **kwargs)
 
         if logger := kwargs.get('logger'):
             logger.debug(f"Created CPIO entry from path: {data}")

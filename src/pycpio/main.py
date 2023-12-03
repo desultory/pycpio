@@ -23,6 +23,7 @@ def main():
     parser.add_argument('-a', '--append', action='store', help='append to archive')
     parser.add_argument('--recursive', action='store_true', help='append to archive recursively')
     parser.add_argument('--relative', action='store', help='append to archive relative to this path')
+    parser.add_argument('--absolute', action='store_true', help='allow absolute paths')
     parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
     parser.add_argument('-n', '--name', action='store', help='Name/path override for append')
 
@@ -92,14 +93,18 @@ def main():
 
     if args.append:
         relative = args.relative if args.relative else None
-        path = Path(args.append)
+        cmdargs = {'relative': relative, 'path': Path(args.append)}
+
+        if args.name:
+            cmdargs['name'] = args.name
+
+        if args.absolute:
+            cmdargs['absolute'] = args.absolute
 
         if args.recursive:
-            c.append_recursive(path=path, relative=relative)
-        elif args.name:
-            c.append_cpio(path=path, name=args.name, relative=relative)
+            c.append_recursive(**cmdargs)
         else:
-            c.append_cpio(path=path, relative=relative)
+            c.append_cpio(**cmdargs)
 
     if args.output:
         c.write_cpio_file(Path(args.output))

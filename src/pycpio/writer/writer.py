@@ -23,19 +23,11 @@ class CPIOWriter:
         """
         Writes the CPIOData objects to the output file.
         """
-        inodes = set()
         offset = 0
         self.logger.debug("Writing to: %s" % self.output_file)
         with open(self.output_file, "wb") as f:
             for entry in self.cpio_entries.values():
                 self.logger.log(5, "Writing entry: %s" % entry)
-                # IDK if i want to do hardlink stuff here or in the PyCpio class
-                # That class manages the CPIOData objects, as well as duplicate detection
-                # If data is passed to the writer, it should try to write it
-                if entry.header.ino in inodes:
-                    raise ValueError(f"Duplicate inode: {entry.header.ino}")
-                inodes.add(entry.header.ino)
-
                 entry_bytes = bytes(entry)
                 padding = pad_cpio(len(entry_bytes))
                 output_bytes = entry_bytes + b'\x00' * padding

@@ -16,11 +16,15 @@ class CPIOArchive(dict):
             raise AttributeError("Entry already exists: %s" % name)
         if value.header.ino in self.inodes:
             from .common import get_new_inode
-            self.logger.debug("Inode already exists: %s", value.header.ino)
-            value.header.ino = get_new_inode(self.inodes)
-            self.logger.debug("New inode: %s", value.header.ino)
+            from .symlink import CPIO_Symlink
+            if isinstance(value, CPIO_Symlink):
+                self.logger.debug("[%s] Symlink inode already exists: %s" % (value.header.name, value.header.ino))
+            else:
+                self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
+                value.header.ino = get_new_inode(self.inodes)
+                self.logger.info("New inode: %s", value.header.ino)
         super().__setitem__(name, value)
-        self.inodes.add(value.header.ino)
+        self.inodes[value.header.ino] = name
 
     def __contains__(self, name):
         """ Check if an entry exists in the archive """
@@ -29,7 +33,7 @@ class CPIOArchive(dict):
     def __init__(self, structure=HEADER_NEW, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.structure = structure
-        self.inodes = set()
+        self.inodes = {}
 
     def pop(self, name):
         """ Remove an entry from the archive """
