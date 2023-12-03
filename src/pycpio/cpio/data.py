@@ -15,7 +15,7 @@ class CPIOData:
     Generic object for CPIO data
     """
     @staticmethod
-    def from_dir(path: Path, structure, parent=None, relative=None, *args, **kwargs):
+    def from_dir(path: Path, parent=None, relative=None, *args, **kwargs):
         """
         Returns a list of CPIOData objects from a directory
         """
@@ -39,14 +39,14 @@ class CPIOData:
                 kwargs['name'] = str(child_path)
 
             if child.is_dir():
-                data.extend(CPIOData.from_dir(child_path, structure, parent, relative, *args, **kwargs))
+                data.extend(CPIOData.from_dir(child_path, parent, relative, *args, **kwargs))
             else:
-                data.append(CPIOData.from_path(child_path, structure, relative, *args, **kwargs))
+                data.append(CPIOData.from_path(child_path, relative, *args, **kwargs))
 
         return data
 
     @staticmethod
-    def from_path(path: Path, structure, relative: None, *args, **kwargs):
+    def from_path(path: Path, relative: None, *args, **kwargs):
         """
         Create a CPIOData object from a path.
         If a name is provided, it will be used instead of the resolved path.
@@ -69,7 +69,6 @@ class CPIOData:
                 kwargs['name'] = str(path)
 
         kwargs['mode'] = mode_bytes_from_path(path)
-        kwargs['structure'] = structure
 
         header = CPIOHeader(*args, **kwargs)
         data = CPIOData.get_subtype(b'', header, *args, **kwargs)
@@ -80,7 +79,7 @@ class CPIOData:
         return data
 
     @staticmethod
-    def create_entry(name: str, structure, *args, **kwargs):
+    def create_entry(name: str, *args, **kwargs):
         """
         Create a CPIOData object from a path
         """
@@ -91,7 +90,7 @@ class CPIOData:
             logger.debug(f"Creating CPIO entry: {name}")
 
         kwargs['mtime'] = kwargs.pop('mtime', time())
-        kwargs['header'] = kwargs.pop('header', CPIOHeader(structure=structure, name=name, *args, **kwargs))
+        kwargs['header'] = kwargs.pop('header', CPIOHeader(name=name, *args, **kwargs))
         kwargs['data'] = kwargs.pop('data', b'')
         data = CPIOData.get_subtype(*args, **kwargs)
 
