@@ -39,9 +39,9 @@ class CPIOData:
                 kwargs['name'] = str(child_path)
 
             if child.is_dir():
-                data.extend(CPIOData.from_dir(child_path, parent, relative, *args, **kwargs))
+                data.extend(CPIOData.from_dir(path=child_path, parent=parent, relative=relative, *args, **kwargs))
             else:
-                data.append(CPIOData.from_path(child_path, relative, *args, **kwargs))
+                data.append(CPIOData.from_path(path=child_path, relative=relative, *args, **kwargs))
 
         return data
 
