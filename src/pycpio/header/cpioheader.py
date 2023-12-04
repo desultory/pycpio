@@ -77,7 +77,7 @@ class CPIOHeader:
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
 
         if key == 'filesize' and value != b'00000000':
-            if getattr(self, 'filesize', None) not in [value, b'00000000']:
+            if getattr(self, 'filesize', b'00000000') not in [value, b'00000000']:
                 self.logger.warning("[%s] changed filesize: %s -> %s" % (self.name, self.filesize, value))
 
         super().__setattr__(key, value)
