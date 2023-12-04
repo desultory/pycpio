@@ -30,7 +30,8 @@ class CPIOData:
 
         if relative is True:
             relative = path
-        elif relative:
+
+        if relative is not None:
             relative = Path(relative).resolve()
 
         if relative:
@@ -58,7 +59,7 @@ class CPIOData:
         return data
 
     @staticmethod
-    def from_path(path: Path, relative: None, *args, **kwargs):
+    def from_path(path: Path, relative=None, *args, **kwargs):
         """
         Create a CPIOData object from a path.
         If a name is provided, it will be used instead of the resolved path.

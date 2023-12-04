@@ -56,7 +56,7 @@ class PyCPIO:
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """ Writes a CPIO archive to file. """
-        kwargs = {'logger': self.logger, 'structure': self.structure, '_log_init': False}
+        kwargs = {'logger': self.logger, 'structure': self.structure, '_log_init': False, '_log_bump': -10}
         writer = CPIOWriter(self.entries, file_path, **kwargs)
         writer.write()
 

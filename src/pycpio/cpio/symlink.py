@@ -27,7 +27,10 @@ class CPIO_Symlink(CPIOData):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if path := kwargs.pop('path', None):
-            self.data = str(path.readlink()).encode('ascii')
+            symlink_path = str(path.readlink())
+            if kwargs.get('recursive', False):
+                symlink_path = symlink_path.lstrip('/')
+            self.data = symlink_path.encode('ascii')
             self.header.mtime = path.stat().st_mtime
         elif self.data is None:
             raise ValueError("path must be specified for symlinks")
