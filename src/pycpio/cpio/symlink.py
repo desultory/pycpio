@@ -18,8 +18,9 @@ class CPIO_Symlink(CPIOData):
             else:
                 raise ValueError("data must be a string or bytes")
 
-            if value and value[-1] != b'\0':
+            if value and value[-1] != 0:
                 value += b'\0'
+
             self.header.filesize = format(len(value), '08x').encode('ascii')
 
         super().__setattr__(key, value)
