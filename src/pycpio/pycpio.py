@@ -55,10 +55,10 @@ class PyCPIO:
         reader = CPIOReader(**kwargs)
         self.entries.update(reader.entries)
 
-    def write_cpio_file(self, file_path: Union[Path, str]):
+    def write_cpio_file(self, file_path: Union[Path, str], *args, **kwargs):
         """ Writes a CPIO archive to file. """
-        kwargs = {'structure': self.structure,
-                  '_log_init': False, 'logger': self.logger}
+        kwargs.update({'structure': self.structure,
+                       '_log_init': False, 'logger': self.logger})
         writer = CPIOWriter(self.entries, file_path, **kwargs)
         writer.write()
 

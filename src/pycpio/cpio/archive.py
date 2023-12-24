@@ -9,6 +9,7 @@ from zenlib.util import handle_plural
 @loggify
 class CPIOArchive(dict):
     from .data import CPIOData
+    from .symlink import CPIO_Symlink
     from pycpio.header import HEADER_NEW
 
     def __setitem__(self, name, value):
@@ -38,7 +39,7 @@ class CPIOArchive(dict):
             self.inodes[value.header.ino] = [name]
 
         # Check if the hash already exists and the data is not empty
-        if value.hash in self.hashes and value.data != b'':
+        if value.hash in self.hashes and value.data != b'' and not isinstance(value, CPIO_Symlink):
             match = self[self.hashes[value.hash]]
             self.logger.warning("[%s] Hash matches existing entry: %s" % (value.header.name, match.header.name))
             value.header.ino = match.header.ino
