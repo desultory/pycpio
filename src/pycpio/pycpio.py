@@ -52,7 +52,7 @@ class PyCPIO:
         """ Creates a CPIOReader object and reads the file. """
         kwargs = {'input_file': file_path, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
         reader = CPIOReader(**kwargs)
-        self.entries.add_entry(reader.entries.values())
+        self.entries.update(reader.entries)
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """ Writes a CPIO archive to file. """
