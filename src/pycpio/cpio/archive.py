@@ -1,15 +1,18 @@
 """
-Collection of CPIOData objects
+Collection of CPIOData objects.
+Handles duplicate inodes and hashes.
+Handles hardlinks and symlinks.
+Normalizes names to be relative to the archive root without changing the header.
 """
 
 from zenlib.logging import loggify
 from zenlib.util import handle_plural
+from .symlink import CPIO_Symlink
 
 
 @loggify
 class CPIOArchive(dict):
     from .data import CPIOData
-    from .symlink import CPIO_Symlink
     from pycpio.header import HEADER_NEW
 
     def __setitem__(self, name, value):
@@ -19,8 +22,6 @@ class CPIOArchive(dict):
         # Ignore symlinks, they can have the same inode
         # Remove data from hardlinks, to save space
         if value.header.ino in self.inodes:
-            from .common import get_new_inode
-            from .symlink import CPIO_Symlink
             if isinstance(value, CPIO_Symlink):
                 self.logger.debug("[%s] Symlink inode already exists: %s" % (value.header.name, value.header.ino))
             elif self[self.inodes[value.header.ino][0]].data == value.data:
@@ -30,6 +31,7 @@ class CPIOArchive(dict):
             elif value.data == b'':
                 self.logger.debug("[%s] Hardlink detected." % value.header.name)
             else:
+                from .common import get_new_inode
                 self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
                 value.header.ino = get_new_inode(self.inodes)
                 self.logger.info("New inode: %s", value.header.ino)
