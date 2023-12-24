@@ -50,13 +50,15 @@ class PyCPIO:
 
     def read_cpio_file(self, file_path: Path):
         """ Creates a CPIOReader object and reads the file. """
-        kwargs = {'input_file': file_path, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
+        kwargs = {'input_file': file_path, 'overrides': self.overrides,
+                  'logger': self.logger, '_log_init': False}
         reader = CPIOReader(**kwargs)
         self.entries.update(reader.entries)
 
     def write_cpio_file(self, file_path: Union[Path, str]):
         """ Writes a CPIO archive to file. """
-        kwargs = {'logger': self.logger, 'structure': self.structure, '_log_init': False, '_log_bump': -10}
+        kwargs = {'structure': self.structure,
+                  '_log_init': False, 'logger': self.logger}
         writer = CPIOWriter(self.entries, file_path, **kwargs)
         writer.write()
 
