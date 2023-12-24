@@ -28,9 +28,7 @@ class CPIOHeader:
         self.nlink = b'00000001'
 
     def from_args(self, *args, **kwargs) -> None:
-        """
-        Initialize the object from the arguments.
-        """
+        """ Initialize the object from the arguments. """
         from .header_funcs import get_magic_from_header
         from .headers import HEADER_NEW
 
@@ -61,6 +59,9 @@ class CPIOHeader:
     def __setattr__(self, key, value):
         """
         If the key is in the structure, set the value to the bytes representation.
+        If the filesize changes, log a warning.
+        Check the mode and set the mode_type and permissions attributes accordingly.
+        If setting the name, add a null byte to the end and set the namesize attribute.
         """
         if hasattr(self, 'structure') and key in self.structure and not isinstance(value, bytes):
             length = self.structure[key]
@@ -78,7 +79,10 @@ class CPIOHeader:
 
         if key == 'filesize' and value != b'00000000':
             if getattr(self, 'filesize', b'00000000') not in [value, b'00000000']:
-                self.logger.warning("[%s] changed filesize: %s -> %s" % (self.name, self.filesize, value))
+                self.logger.warning("[%s] Changed filesize: %s -> %s" % (self.name, self.filesize, value))
+        elif key == 'filesize' and value == b'00000000':
+            if getattr(self, 'filesize', b'00000000') != b'00000000':
+                self.logger.warning("[%s] Setting filesize to 0" % self.name)
 
         super().__setattr__(key, value)
 
@@ -103,9 +107,7 @@ class CPIOHeader:
             self.namesize = namesize
 
     def process_overrides(self, overrides: dict) -> None:
-        """
-        Process the overrides dictionary and set the attributes on the object.
-        """
+        """ Process the overrides dictionary and set the attributes on the object. """
         for attribute in self.structure:
             if attribute in overrides:
                 self.logger.log(5, "[%s] Pre-override: %s" % (attribute, getattr(self, attribute)))
@@ -118,20 +120,15 @@ class CPIOHeader:
                 setattr(self, attribute, value)
 
     def _read_bytes(self, num_bytes: int) -> bytes:
-        """
-        Read the specified number of bytes from the data.
-        Increments the offset.
-        """
+        """ Read the specified number of bytes from the data, incrementing the offset, then returning the data. """
         data = self.data[self.offset:self.offset + num_bytes]
         self.offset += num_bytes
         return data
 
-    def add_data(self, additional_data: bytes) -> None:
-        """
-        Add the file data to the object.
-        """
-        self.logger.debug("Adding data: %s", additional_data)
-        self.data += additional_data
+    def add_data(self, data: bytes) -> None:
+        """ Add the file data to the object. """
+        self.logger.debug("Adding data: %s" % data)
+        self.data += data
 
     def parse_header(self):
         """
@@ -151,9 +148,7 @@ class CPIOHeader:
                 self.logger.debug("Parsed %s: %s", key, data)
 
     def get_name(self):
-        """
-        Get the name of the file.
-        """
+        """ Get the name of the file. """
         name = self._read_bytes(int(self.namesize, 16)).decode('ascii').rstrip('\0')
 
         if not name:
@@ -161,9 +156,7 @@ class CPIOHeader:
         self.name = name
 
     def __bytes__(self):
-        """
-        Returns the bytes representation of the object.
-        """
+        """ Returns the bytes representation of the object. """
         from pycpio.cpio import pad_cpio
         out_bytes = b''
         # Get the bytes for each attribute
@@ -177,9 +170,7 @@ class CPIOHeader:
         return out_bytes
 
     def __str__(self):
-        """
-        Returns a string representation of the object.
-        """
+        """ Returns a string representation of the object. """
         from datetime import datetime
 
         out_str = f"[{int(self.ino, 16)}] "
@@ -200,6 +191,5 @@ class CPIOHeader:
                 out_str += f"    {attr}: {int(getattr(self, attr), 16)}\n"
 
         out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
-
         return out_str
 

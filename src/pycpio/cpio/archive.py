@@ -14,22 +14,38 @@ class CPIOArchive(dict):
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError("Entry already exists: %s" % name)
+        # Check if the inode already exists
+        # Ignore symlinks, they can have the same inode
+        # Remove data from hardlinks, to save space
         if value.header.ino in self.inodes:
             from .common import get_new_inode
             from .symlink import CPIO_Symlink
             if isinstance(value, CPIO_Symlink):
                 self.logger.debug("[%s] Symlink inode already exists: %s" % (value.header.name, value.header.ino))
             elif self[self.inodes[value.header.ino]].data == value.data:
-                self.logger.info("[%s] Hardlink detected, removing data." % value.header.name)
+                self.logger.info("[%s] New hardlink detected, removing data." % value.header.name)
                 value.data = b''
                 value.header.nlink = int(value.header.nlink, 16) + 1
                 self[self.inodes[value.header.ino]].header.nlink = value.header.nlink
+            elif value.data == b'':
+                self.logger.info("[%s] Hardlink detected." % value.header.name)
             else:
                 self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
                 value.header.ino = get_new_inode(self.inodes)
                 self.logger.info("New inode: %s", value.header.ino)
+                self.logger.warning(value)
+
+        # Check if the hash already exists and the data is not empty
+        if value.hash in self.hashes and value.data != b'':
+            match = self[self.hashes[value.hash]]
+            self.logger.warning("[%s] Hash matches existing entry: %s" % (value.header.name, match.header.name))
+            value.header.ino = match.header.ino
+            # run setitem again to handle the duplicate inode as a hardlink
+            self[name] = value
+
         super().__setitem__(name, value)
         self.inodes[value.header.ino] = name
+        self.hashes[value.hash] = name
 
     def __contains__(self, name):
         """ Check if an entry exists in the archive """
@@ -39,6 +55,7 @@ class CPIOArchive(dict):
         super().__init__(*args, **kwargs)
         self.structure = structure
         self.inodes = {}
+        self.hashes = {}
 
     def pop(self, name):
         """ Remove an entry from the archive """

@@ -12,7 +12,10 @@ from pycpio.masks import mode_bytes_from_path
 @loggify
 class CPIOData:
     """
-    Generic object for CPIO data
+    Generic object for CPIO data.
+    self.header is a CPIOHeader object.
+    self.data is a bytes object.
+    self.hash is the sha256 hash of the data.
     """
     @staticmethod
     def from_dir(path: Path, parent=None, relative=None, *args, **kwargs):
@@ -131,15 +134,13 @@ class CPIOData:
         data = CPIOData.get_subtype(*args, **kwargs)
 
         if logger := kwargs.get('logger'):
-            logger.info(f"Created CPIO entry: {data}")
+            logger.info("Created CPIO entry: %s" % data)
 
         return data
 
     @staticmethod
     def get_subtype(data: bytes, header, *args, **kwargs):
-        """
-        Get the appropriate subtype for the data based on the header mode type.
-        """
+        """ Get the appropriate subtype for the data based on the header mode type. """
         # Imports must be here so the module can be imported
         from .file import CPIO_File
         from .symlink import CPIO_Symlink
@@ -172,21 +173,21 @@ class CPIOData:
     def __setattr__(self, name, value):
         """ Setattr, mostly for making sure the header filesize matches the data length """
         super().__setattr__(name, value)
-        if name == 'data' and value:
+        if name == 'data':
+            if value:
+                from hashlib import sha256
+                self.hash = sha256(value).hexdigest()
             self.header.filesize = len(value)
 
     def __init__(self, data: bytes, header, *args, **kwargs):
         self.header = header
+        self.hash = None
         self.data = data
 
     def __str__(self):
-        out_str = f"\n{self.header}"
-        out_str += f"{self.__class__.__name__} "
-        return out_str
+        return f"\n{self.header}\nSHA256: {self.hash}\n{self.__class__.__name__}"
 
     def __bytes__(self):
-        """
-        Convert the data to bytes
-        """
+        """ Convert the data to bytes """
         return bytes(self.header) + self.data
 
