@@ -4,7 +4,7 @@ CPIO data objects
 
 from pathlib import Path
 
-from zenlib.logging import loggify
+from zen_logging import loggify
 
 from pycpio.masks import mode_bytes_from_path
 

@@ -1,5 +1,5 @@
 
-from zenlib.logging import loggify
+from zen_logging import loggify
 
 from pycpio.cpio import pad_cpio
 from pycpio.header import CPIOHeader, HEADER_NEW

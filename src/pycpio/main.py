@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from importlib.metadata import version
 from pathlib import Path
 
-from zenlib.logging import ColorLognameFormatter
+from zen_logging import ColorLognameFormatter
 
 
 def main():
