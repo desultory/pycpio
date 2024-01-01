@@ -7,7 +7,7 @@ from pycpio.masks import CPIOModes
 from pycpio.header import HEADER_NEW
 from pycpio.writer import CPIOWriter
 from pycpio.reader import CPIOReader
-from zen_logging import loggify
+from zenlib.logging import loggify
 
 
 @loggify

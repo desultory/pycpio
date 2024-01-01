@@ -3,7 +3,7 @@ CPIO header class definition.
 """
 
 
-from zen_logging import loggify
+from zenlib.logging import loggify
 
 from pycpio.masks import resolve_mode_bytes, print_permissions, resolve_permissions
 

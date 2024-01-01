@@ -4,7 +4,7 @@ from typing import Union
 
 from pycpio.cpio import CPIOArchive, pad_cpio, CPIOData
 from pycpio.header import CPIOHeader
-from zen_logging import loggify
+from zenlib.logging import loggify
 
 
 @loggify

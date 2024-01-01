@@ -4,22 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pycpio"
-version = "0.7.3"
+version = "0.8.0"
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
 ]
 description = "A Python library for reading and writing cpio archives."
 readme = "readme.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "zen_logging >= 1.1.0",
-    "zen_util >= 1.0.1"
-]
+dependencies = ["zenlib >= 1.4.0"]
 
 [project.scripts]
 pycpio = "pycpio.main:main"

@@ -5,8 +5,8 @@ Handles hardlinks and symlinks.
 Normalizes names to be relative to the archive root without changing the header.
 """
 
-from zen_logging import loggify
-from zen_util import handle_plural
+from zenlib.logging import loggify
+from zenlib.util import handle_plural
 from .symlink import CPIO_Symlink
 
 
