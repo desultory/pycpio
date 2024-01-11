@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pycpio"
-version = "0.8.0"
+version = "0.8.2"
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
 ]
@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Operating System :: OS Independent",
 ]
-dependencies = ["zenlib >= 1.4.0"]
+dependencies = ["zenlib >= 1.6.1"]
 
 [project.scripts]
 pycpio = "pycpio.main:main"
