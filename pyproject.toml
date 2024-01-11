@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Operating System :: OS Independent",
 ]
-dependencies = ["zenlib >= 1.6.1"]
+dependencies = ["zenlib >= 1.6.2"]
 
 [project.scripts]
 pycpio = "pycpio.main:main"
