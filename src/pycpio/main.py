@@ -1,65 +1,40 @@
 #!/usr/bin/env python3
 
-
-from pycpio import PyCPIO
-
-from logging import getLogger, StreamHandler
-from argparse import ArgumentParser
-from importlib.metadata import version
 from pathlib import Path
 
-from zenlib.logging import ColorLognameFormatter
+from pycpio import PyCPIO
+from zenlib.util import init_logger, init_argparser, process_args
 
 
 def main():
-    logger = getLogger(__name__)
-    handler = StreamHandler()
-    handler.setFormatter(ColorLognameFormatter('%(levelname)s | %(name)-42s | %(message)s'))
-    logger.addHandler(handler)
+    logger = init_logger(__package__)
+    argparser = init_argparser(prog=__package__, description='PyCPIO')
 
-    parser = ArgumentParser(prog='cpio')
-    parser.add_argument('-i', '--input', help='input file')
+    argparser.add_argument('-i', '--input', help='input file')
 
-    parser.add_argument('-a', '--append', action='store', help='append to archive')
-    parser.add_argument('--recursive', action='store_true', help='append to archive recursively')
-    parser.add_argument('--relative', action='store', help='append to archive relative to this path')
-    parser.add_argument('--absolute', action='store_true', help='allow absolute paths')
-    parser.add_argument('--rm', '--delete', action='store', help='delete from archive')
-    parser.add_argument('-n', '--name', action='store', help='Name/path override for append')
+    argparser.add_argument('-a', '--append', action='store', help='append to archive')
+    argparser.add_argument('--recursive', action='store_true', help='append to archive recursively')
+    argparser.add_argument('--relative', action='store', help='append to archive relative to this path')
+    argparser.add_argument('--absolute', action='store_true', help='allow absolute paths')
+    argparser.add_argument('--rm', '--delete', action='store', help='delete from archive')
+    argparser.add_argument('-n', '--name', action='store', help='Name/path override for append')
 
-    parser.add_argument('-s', '--symlink', action='store', help='create symlink')
-    parser.add_argument('-c', '--chardev', action='store', help='create character device')
+    argparser.add_argument('-s', '--symlink', action='store', help='create symlink')
+    argparser.add_argument('-c', '--chardev', action='store', help='create character device')
 
-    parser.add_argument('--major', action='store', help='major number for character/block device')
-    parser.add_argument('--minor', action='store', help='minor number for character/block device')
+    argparser.add_argument('--major', action='store', help='major number for character/block device')
+    argparser.add_argument('--minor', action='store', help='minor number for character/block device')
 
-    parser.add_argument('-u', '--set-owner', action='store', help='set UID on all files')
-    parser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
-    parser.add_argument('-m', '--set-mode', action='store', help='set mode on all files')
+    argparser.add_argument('-u', '--set-owner', action='store', help='set UID on all files')
+    argparser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
+    argparser.add_argument('-m', '--set-mode', action='store', help='set mode on all files')
 
-    parser.add_argument('-o', '--output', help='output file')
+    argparser.add_argument('-o', '--output', help='output file')
 
-    parser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')
-    parser.add_argument('-p', '--print', action='store_true', help='print CPIO contents')
+    argparser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')
+    argparser.add_argument('-p', '--print', action='store_true', help='print CPIO contents')
 
-    parser.add_argument('-d', '--debug', action='store_true', help='Debug output')
-    parser.add_argument('-dd', '--verbose', action='store_true', help='Verbose output')
-
-    parser.add_argument('-v', '--version', action='store_true', help='Print version and exit')
-
-    args = parser.parse_args()
-
-    if args.version:
-        print(f'PyCPIO {version("pycpio")}')
-        return
-
-    if args.debug:
-        logger.setLevel(10)
-    elif args.verbose:
-        logger.setLevel(5)
-    else:
-        logger.setLevel(20)
-
+    args = process_args(argparser, logger=logger)
     kwargs = {'logger': logger}
 
     if args.name:
