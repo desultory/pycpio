@@ -181,7 +181,7 @@ class CPIOData:
     def __init__(self, data: bytes, header, *args, **kwargs):
         self.header = header
         self.hash = None
-        self.data = data
+        self.data = data if data is not None else b''
 
     def __str__(self):
         return f"\n{self.header}\nSHA256: {self.hash}\n{self.__class__.__name__}"
