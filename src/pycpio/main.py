@@ -3,51 +3,30 @@
 from pathlib import Path
 
 from pycpio import PyCPIO
-from zenlib.util import init_logger, init_argparser, process_args
+from zenlib.util import get_kwargs_from_args, get_args_n_logger
 
 
 def main():
-    logger = init_logger(__package__)
-    argparser = init_argparser(prog=__package__, description='PyCPIO')
+    arguments = [{'flags': ['-i', '--input'], 'help': 'input file'},
+                 {'flags': ['-a', '--append'], 'help': 'append to archive'},
+                 {'flags': ['--recursive'], 'action': 'store_true', 'help': 'append to archive recursively'},
+                 {'flags': ['--relative'], 'action': 'store', 'help': 'append to archive relative to this path'},
+                 {'flags': ['--absolute'], 'action': 'store_true', 'help': 'allow absolute paths'},
+                 {'flags': ['--rm', '--delete'], 'action': 'store', 'help': 'delete from archive'},
+                 {'flags': ['-n', '--name'], 'action': 'store', 'help': 'Name/path override for append'},
+                 {'flags': ['-s', '--symlink'], 'action': 'store', 'help': 'create symlink'},
+                 {'flags': ['-c', '--chardev'], 'action': 'store', 'help': 'create character device'},
+                 {'flags': ['--major'], 'action': 'store', 'help': 'major number for character/block device', 'type': int},
+                 {'flags': ['--minor'], 'action': 'store', 'help': 'minor number for character/block device', 'type': int},
+                 {'flags': ['-u', '--set-owner'], 'action': 'store', 'help': 'set UID on all files', 'type': int, 'dest': 'uid'},
+                 {'flags': ['-g', '--set-group'], 'action': 'store', 'help': 'set GID on all files', 'type': int, 'dest': 'gid'},
+                 {'flags': ['-m', '--set-mode'], 'action': 'store', 'help': 'set mode on all files', 'type': int, 'dest': 'mode'},
+                 {'flags': ['-o', '--output'], 'help': 'output file'},
+                 {'flags': ['-l', '--list'], 'action': 'store_true', 'help': 'list CPIO contents'},
+                 {'flags': ['-p', '--print'], 'action': 'store_true', 'help': 'print CPIO contents'}]
 
-    argparser.add_argument('-i', '--input', help='input file')
-
-    argparser.add_argument('-a', '--append', action='store', help='append to archive')
-    argparser.add_argument('--recursive', action='store_true', help='append to archive recursively')
-    argparser.add_argument('--relative', action='store', help='append to archive relative to this path')
-    argparser.add_argument('--absolute', action='store_true', help='allow absolute paths')
-    argparser.add_argument('--rm', '--delete', action='store', help='delete from archive')
-    argparser.add_argument('-n', '--name', action='store', help='Name/path override for append')
-
-    argparser.add_argument('-s', '--symlink', action='store', help='create symlink')
-    argparser.add_argument('-c', '--chardev', action='store', help='create character device')
-
-    argparser.add_argument('--major', action='store', help='major number for character/block device')
-    argparser.add_argument('--minor', action='store', help='minor number for character/block device')
-
-    argparser.add_argument('-u', '--set-owner', action='store', help='set UID on all files')
-    argparser.add_argument('-g', '--set-group', action='store', help='set GID on all files')
-    argparser.add_argument('-m', '--set-mode', action='store', help='set mode on all files')
-
-    argparser.add_argument('-o', '--output', help='output file')
-
-    argparser.add_argument('-l', '--list', action='store_true', help='list CPIO contents')
-    argparser.add_argument('-p', '--print', action='store_true', help='print CPIO contents')
-
-    args = process_args(argparser, logger=logger)
-    kwargs = {'logger': logger}
-
-    if args.name:
-        kwargs['name'] = args.name
-
-    if args.set_owner:
-        kwargs['uid'] = int(args.set_owner)
-
-    if args.set_group:
-        kwargs['gid'] = int(args.set_group)
-
-    if args.set_mode:
-        kwargs['mode'] = int(args.set_mode, 8)
+    args, logger = get_args_n_logger(package=__package__, description='PyCPIO', arguments=arguments)
+    kwargs = get_kwargs_from_args(args, logger=logger)
 
     c = PyCPIO(**kwargs)
     if args.input:

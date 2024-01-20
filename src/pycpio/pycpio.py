@@ -21,6 +21,7 @@ class PyCPIO:
         for attr in self.structure:
             if value := kwargs.pop(attr, None):
                 self.logger.info("[%s] Setting override: %s" % (attr, value))
+                self.overrides[attr] = value
 
     def append_cpio(self, path: Path, name: str = None, *args, **kwargs):
         """ Appends a file or directory to the CPIO archive. """
