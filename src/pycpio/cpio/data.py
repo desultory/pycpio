@@ -21,7 +21,7 @@ class CPIOData:
         """
         Returns a list of CPIOData objects from a directory
 
-        If the path is a symlink, it will be resolved and the resolved path will be used.
+        Resolves the path and checks if it is a directory.
 
         If relative is set, the name will be relative to that path.
         The path will be unaltered, since it is used for header stats and data.
@@ -54,7 +54,7 @@ class CPIOData:
             else:
                 kwargs['name'] = str(child_path)
 
-            if child.is_dir():
+            if child.is_dir() and not child.is_symlink():
                 data.extend(CPIOData.from_dir(path=child_path, parent=parent, relative=relative, *args, **kwargs))
             else:
                 data.append(CPIOData.from_path(path=child_path, relative=relative, *args, **kwargs))

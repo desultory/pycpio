@@ -39,10 +39,10 @@ def mode_bytes_from_path(file_path: Path) -> CPIOModes:
     """
     Gets the mode type bytes from the given path.
     """
-    if file_path.is_dir():
-        return CPIOModes.Dir.value
-    elif file_path.is_symlink():
+    if file_path.is_symlink():
         return CPIOModes.Symlink.value
+    elif file_path.is_dir():
+        return CPIOModes.Dir.value
     elif file_path.is_block_device():
         return CPIOModes.BlkDev.value
     elif file_path.is_char_device():
