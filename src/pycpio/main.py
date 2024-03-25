@@ -32,20 +32,20 @@ def main():
     if args.input:
         c.read_cpio_file(Path(args.input))
 
-    if args.rm:
+    if 'rm' in args:
         c.remove_cpio(args.rm)
 
-    if args.symlink:
+    if 'symlink' in args:
         if not args.name:
             raise ValueError('Symlink requires a name')
         c.add_symlink(args.name, args.symlink)
 
-    if args.chardev:
+    if 'chardev' in args:
         if not args.major or not args.minor:
             raise ValueError('Character device requires major and minor numbers')
         c.add_chardev(args.chardev, int(args.major), int(args.minor))
 
-    if args.append:
+    if 'append' in args:
         relative = args.relative if args.relative else None
         cmdargs = {'relative': relative, 'path': Path(args.append)}
 
@@ -60,13 +60,13 @@ def main():
         else:
             c.append_cpio(**cmdargs)
 
-    if args.output:
+    if 'output' in args:
         c.write_cpio_file(Path(args.output))
 
-    if args.list:
+    if 'list' in args:
         print(c.list_files())
 
-    if args.print:
+    if 'print' in args:
         print(c)
 
 
