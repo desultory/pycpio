@@ -29,7 +29,7 @@ def main():
     kwargs = get_kwargs_from_args(args, logger=logger)
 
     c = PyCPIO(**kwargs)
-    if args.input:
+    if 'input' in args:
         c.read_cpio_file(Path(args.input))
 
     if 'rm' in args:
@@ -49,13 +49,13 @@ def main():
         relative = args.relative if args.relative else None
         cmdargs = {'relative': relative, 'path': Path(args.append)}
 
-        if args.name:
+        if 'name' in args:
             cmdargs['name'] = args.name
 
-        if args.absolute:
+        if 'absolute' in args:
             cmdargs['absolute'] = args.absolute
 
-        if args.recursive:
+        if 'recursive' in args:
             c.append_recursive(**cmdargs)
         else:
             c.append_cpio(**cmdargs)
