@@ -184,7 +184,9 @@ class CPIOData:
         self.data = data if data is not None else b''
 
     def __str__(self):
-        return f"\n{self.header}\nSHA256: {self.hash}\n{self.__class__.__name__}"
+        out_str = f"{self.__class__.__name__} {self.header}"
+        out_str += f"\nSHA256: {self.hash} " if self.hash else " "
+        return out_str
 
     def __bytes__(self):
         """ Convert the data to bytes """

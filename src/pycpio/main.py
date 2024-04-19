@@ -25,7 +25,7 @@ def main():
                  {'flags': ['-l', '--list'], 'action': 'store_true', 'help': 'list CPIO contents'},
                  {'flags': ['-p', '--print'], 'action': 'store_true', 'help': 'print CPIO contents'}]
 
-    args, logger = get_args_n_logger(package=__package__, description='PyCPIO', arguments=arguments)
+    args, logger = get_args_n_logger(package=__package__, description='PyCPIO', arguments=arguments, drop_default=True)
     kwargs = get_kwargs_from_args(args, logger=logger)
 
     c = PyCPIO(**kwargs)

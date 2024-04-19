@@ -176,19 +176,25 @@ class CPIOHeader:
         out_str += "Header:\n" if not hasattr(self, 'name') else f"{self.name}:\n"
 
         for attr in self.structure:
-            if attr in ['ino', 'mode', 'devmajor', 'devminor',
+            if attr in ['ino', 'mode', 'devmajor', 'devminor', 'uid', 'gid',
                         'rdevmajor', 'rdevminor', 'namesize', 'filesize', 'check']:
                 continue
             elif attr == 'nlink':
                 if int(self.nlink, 16) > 1:
                     out_str += f"    {attr}: {int(self.nlink, 16)}\n"
             elif attr == 'magic':
-                out_str += f"    {attr}: {self.magic}\n"
+                if self.logger.level < 20:
+                    out_str += f"    {attr}: {self.magic}\n"
+                else:
+                    continue
             elif attr == 'mtime':
-                out_str += f"    {attr}: {datetime.fromtimestamp(int(self.mtime, 16))}\n"
+                if self.logger.level < 20:
+                    out_str += f"    {attr}: {datetime.fromtimestamp(int(self.mtime, 16))}\n"
+                else:
+                    continue
             else:
-                out_str += f"    {attr}: {int(getattr(self, attr), 16)}\n"
+                out_str += f"    {attr}: {int(getattr(self, attr), 16)}"
 
-        out_str += f"    Permissions: {print_permissions(self.permissions)}\n"
+        out_str += f"    Permissions: {print_permissions(self.permissions)} {int(self.uid)} {int(self.gid)}"
         return out_str
 

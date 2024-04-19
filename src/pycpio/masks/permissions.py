@@ -53,7 +53,7 @@ def print_permissions(passed_perms: set, extended=False) -> str:
             out += "-"
 
         if permission.name[0].lower() == 'x':
-            out += " "
+            out += "-"
 
     return out.rstrip()
 
