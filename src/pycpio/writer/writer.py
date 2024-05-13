@@ -33,7 +33,7 @@ class CPIOWriter:
             import lzma
             self.logger.info("Compressing data with xz, original size: %d" % len(data))
             data = lzma.compress(data)
-        elif self.compression is not None:
+        elif self.compression not in [False, 'False', None, '', 'false']:
             raise NotImplementedError("Compression type not supported: %s" % self.compression)
         return data
 
