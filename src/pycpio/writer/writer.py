@@ -4,6 +4,7 @@ from pycpio.header import CPIOHeader, HEADER_NEW
 
 from pathlib import Path
 from os import fsync
+from lzma import CHECK_CRC32
 
 
 @loggify
@@ -12,12 +13,13 @@ class CPIOWriter:
     Takes a list of CPIOData objects, gets their bytes representation, then appends a trailer before writing them to a file.
     Compresses the data if compression is specified.
     """
-    def __init__(self, cpio_entries: list, output_file: Path, compression=None, structure=None, *args, **kwargs):
+    def __init__(self, cpio_entries: list, output_file: Path, structure=None, compression=None, xz_crc=CHECK_CRC32, *args, **kwargs):
         self.cpio_entries = cpio_entries
         self.output_file = Path(output_file)
 
         self.structure = structure if structure is not None else HEADER_NEW
         self.compression = compression
+        self.xz_crc = xz_crc
 
     def __bytes__(self):
         """ Creates a bytes representation of the CPIOData objects. """
@@ -32,7 +34,7 @@ class CPIOWriter:
         if self.compression == 'xz':
             import lzma
             self.logger.info("Compressing data with xz, original size: %d" % len(data))
-            data = lzma.compress(data)
+            data = lzma.compress(data, check=self.xz_crc)
         elif self.compression not in [False, 'False', None, '', 'false']:
             raise NotImplementedError("Compression type not supported: %s" % self.compression)
         return data
