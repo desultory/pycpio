@@ -113,3 +113,7 @@ class CPIOArchive(dict):
         entry_name = self._normalize_name(data.header.name)
         self[entry_name] = data
         self.logger.debug("Added entry: %s", entry_name)
+
+    def __bytes__(self):
+        """ Return the archive as a byte string, packed with all the data. """
+        return b''.join([bytes(data) for data in self.values()])

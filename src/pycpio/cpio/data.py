@@ -190,5 +190,7 @@ class CPIOData:
 
     def __bytes__(self):
         """ Convert the data to bytes """
-        return bytes(self.header) + self.data
+        from pycpio.cpio import pad_cpio
+        payload = bytes(self.header) + self.data
+        return payload + b'\x00' * pad_cpio(len(payload))
 
