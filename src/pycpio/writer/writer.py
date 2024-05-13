@@ -4,6 +4,7 @@ from pycpio.cpio import pad_cpio
 from pycpio.header import CPIOHeader, HEADER_NEW
 
 from pathlib import Path
+from os import fsync
 
 
 @loggify
@@ -38,6 +39,9 @@ class CPIOWriter:
             self.logger.debug("Writing trailer: %s" % trailer)
             f.write(bytes(trailer))
             offset += len(bytes(trailer))
+            # Flush the file to ensure all data is written, then fsync to ensure it's written to disk.
+            f.flush()
+            fsync(f.fileno())
 
         self.logger.info("Wrote %d bytes to: %s" % (offset, self.output_file))
 
