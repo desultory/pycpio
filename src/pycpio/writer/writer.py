@@ -52,5 +52,5 @@ class CPIOWriter:
             else:
                 self.logger.warning("File not fsynced, data may not be written to disk: %s" % self.output_file)
 
-        self.logger.info("Wrote %d bytes to: %s" % (len(data), self.output_file))
+        self.logger.info("Wrote %.2f MiB to: %s" % (len(data) / (2 ** 20), self.output_file))
 
