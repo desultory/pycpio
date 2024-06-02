@@ -31,7 +31,7 @@ class CPIOWriter:
 
     def compress(self, data):
         """ Attempts to compress the data using the specified compression type. """
-        if self.compression == 'xz' or self.comression.lower() == 'true':
+        if self.compression == 'xz' or self.compression.lower() == 'true':
             import lzma
             self.logger.info("XZ compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2 ** 20)))
             data = lzma.compress(data, check=self.xz_crc)
