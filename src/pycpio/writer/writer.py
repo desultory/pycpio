@@ -18,7 +18,13 @@ class CPIOWriter:
         self.output_file = Path(output_file)
 
         self.structure = structure if structure is not None else HEADER_NEW
-        self.compression = compression
+
+        if compression.lower() == 'true' or compression is True:
+            self.compression = True
+        elif compression.lower() == 'false' or compression is False:
+            self.compression = False
+        elif isinstance(compression, str):
+            compression = compression.lower()
         self.xz_crc = xz_crc
 
     def __bytes__(self):
