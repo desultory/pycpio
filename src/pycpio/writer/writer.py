@@ -26,9 +26,10 @@ class CPIOWriter:
         elif isinstance(compression, str):
             compression = compression.lower()
             if compression == 'true':
-                self.compression = True
+                compression = True
             elif compression == 'false':
-                self.compression = False
+                compression = False
+            self.compression = compression
         self.xz_crc = xz_crc
 
     def __bytes__(self):
