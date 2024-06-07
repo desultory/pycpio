@@ -17,7 +17,7 @@ class CPIOData:
     self.hash is the sha256 hash of the data.
     """
     @staticmethod
-    def from_dir(path: Path, parent=None, relative=None, *args, **kwargs):
+    def from_dir(path: Path, parent=None, relative=False, *args, **kwargs):
         """
         Returns a list of CPIOData objects from a directory
 
@@ -33,7 +33,7 @@ class CPIOData:
         if relative is True:
             relative = path
 
-        if relative is not None:
+        if relative is not False:
             relative = Path(relative).resolve()
 
         if relative:
@@ -61,7 +61,7 @@ class CPIOData:
         return data
 
     @staticmethod
-    def from_path(path: Path, relative=None, *args, **kwargs):
+    def from_path(path: Path, relative=False, *args, **kwargs):
         """
         Create a CPIOData object from a path.
         If a name is provided, it will be used instead of the resolved path.
@@ -78,9 +78,12 @@ class CPIOData:
         if logger := kwargs.get('logger'):
             logger.debug(f"Creating CPIO entry from path: {path}")
 
-        relative = Path(relative).resolve() if relative else None
-        if logger := kwargs.get('logger'):
-            logger.debug("Creating CPIO entry relative to path: %s", relative)
+        if isinstance(relative, str):
+            relative = Path(relative)
+        if isinstance(relative, Path):
+            relative = relative.resolve()
+            if logger := kwargs.get('logger'):
+                logger.debug("Creating CPIO entry relative to path: %s", relative)
 
         # Unless the path is a symlink, resolve it
         if not path.is_symlink():

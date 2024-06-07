@@ -12,6 +12,7 @@ def main():
                  {'flags': ['--recursive'], 'action': 'store_true', 'help': 'append to archive recursively'},
                  {'flags': ['--relative'], 'action': 'store', 'help': 'append to archive relative to this path'},
                  {'flags': ['--absolute'], 'action': 'store_true', 'help': 'allow absolute paths'},
+                 {'flags': ['--reproducible'], 'action': 'store_true', 'help': 'Set mtime to 0, start inodes at 0'},
                  {'flags': ['--rm', '--delete'], 'action': 'store', 'help': 'delete from archive'},
                  {'flags': ['-n', '--name'], 'action': 'store', 'help': 'Name/path override for append'},
                  {'flags': ['-s', '--symlink'], 'action': 'store', 'help': 'create symlink'},
@@ -46,7 +47,7 @@ def main():
         c.add_chardev(args.chardev, int(args.major), int(args.minor))
 
     if 'append' in args:
-        relative = True if 'recursive' in args and args.relative else False
+        relative = True if 'relative' in args and args.relative else False
         cmdargs = {'relative': relative, 'path': Path(args.append)}
 
         if 'name' in args:
