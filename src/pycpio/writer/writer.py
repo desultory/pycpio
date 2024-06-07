@@ -13,7 +13,7 @@ class CPIOWriter:
     Takes a list of CPIOData objects, gets their bytes representation, then appends a trailer before writing them to a file.
     Compresses the data if compression is specified.
     """
-    def __init__(self, cpio_entries: list, output_file: Path, structure=None, compression=None, xz_crc=CHECK_CRC32, *args, **kwargs):
+    def __init__(self, cpio_entries: list, output_file: Path, structure=None, compression=False, xz_crc=CHECK_CRC32, *args, **kwargs):
         self.cpio_entries = cpio_entries
         self.output_file = Path(output_file)
 
@@ -31,7 +31,7 @@ class CPIOWriter:
 
     def compress(self, data):
         """ Attempts to compress the data using the specified compression type. """
-        if self.compression == 'xz' or self.compression.lower() == 'true':
+        if self.compression == 'xz' or self.compression.lower() == 'true' or self.compression is True:
             import lzma
             self.logger.info("XZ compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2 ** 20)))
             data = lzma.compress(data, check=self.xz_crc)

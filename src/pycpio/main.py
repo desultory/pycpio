@@ -46,7 +46,7 @@ def main():
         c.add_chardev(args.chardev, int(args.major), int(args.minor))
 
     if 'append' in args:
-        relative = args.relative if args.relative else None
+        relative = True if 'recursive' in args and args.relative else False
         cmdargs = {'relative': relative, 'path': Path(args.append)}
 
         if 'name' in args:
