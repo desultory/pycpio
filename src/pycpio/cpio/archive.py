@@ -35,6 +35,7 @@ class CPIOArchive(dict):
                 self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
                 value.header.ino = get_new_inode(self.inodes)
                 self.logger.info("New inode: %s", value.header.ino)
+                self.inodes[value.header.ino] = []
             self.inodes[value.header.ino].append(name)
         else:
             # Create an inode entry with the name
