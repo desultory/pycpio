@@ -67,9 +67,10 @@ class CPIOArchive(dict):
         """ Check if an entry exists in the archive """
         return super().__contains__(self._normalize_name(name))
 
-    def __init__(self, structure=HEADER_NEW, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.structure = structure
+        self.reproducible = reproducible
         self.inodes = {}
         self.hashes = {}
 
@@ -112,6 +113,8 @@ class CPIOArchive(dict):
     def add_entry(self, data: CPIOData):
         """ Add a new entry to the archive """
         entry_name = self._normalize_name(data.header.name)
+        if self.reproducible:
+            data.header.mtime = 0
         self[entry_name] = data
         self.logger.debug("Added entry: %s", entry_name)
 

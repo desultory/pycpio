@@ -13,10 +13,11 @@ from zenlib.logging import loggify
 @loggify
 class PyCPIO:
     """ A class for using CPIO archives. """
-    def __init__(self, structure=HEADER_NEW, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
         self.structure = structure
+        self.reproducible = reproducible
         self.overrides = {}
-        self.entries = CPIOArchive(self.structure, logger=self.logger, _log_init=False)
+        self.entries = CPIOArchive(self.structure, reproducible=reproducible, logger=self.logger, _log_init=False)
 
         for attr in self.structure:
             if value := kwargs.pop(attr, None):
