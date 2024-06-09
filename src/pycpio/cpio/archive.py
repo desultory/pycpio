@@ -19,6 +19,9 @@ class CPIOArchive(dict):
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError("Entry already exists: %s" % name)
+        if name != value.header.name:
+            self.logger.warning("Name mismatch: %s != %s" % (name, value.header.name))
+            name = value.header.name
         # If reproduceable is enabled, set the inode to 0, so it can be recalculated
         if self.reproducible:
             value.header.ino = 0
@@ -42,7 +45,7 @@ class CPIOArchive(dict):
             self.hashes[value.hash] = name
 
         super().__setitem__(name, value)
-        self._update_nlinks(value.header.ino)
+        self._update_nlinks(value)
 
     def _update_inodes(self, entry):
         """
@@ -70,8 +73,9 @@ class CPIOArchive(dict):
             self.inodes[entry.header.ino] = []
         self.inodes[entry.header.ino].append(entry.header.name)
 
-    def _update_nlinks(self, inode):
+    def _update_nlinks(self, entry):
         """ Update nlinks for all entries with the same inode """
+        inode = entry.header.ino
         # Get the number of links based on the number of entries with that inode
         nlink = len(self.inodes[inode])
         # Update the nlink value for all entries with that inode
@@ -116,7 +120,7 @@ class CPIOArchive(dict):
             # Remove the name from the hash list
             del self.hashes[self[normalized_name].hash]
             # Update the nlink value for all entries with that inode
-            self._update_nlinks(self[normalized_name].header.ino)
+            self._update_nlinks(self[normalized_name])
 
         return super().pop(normalized_name)
 
