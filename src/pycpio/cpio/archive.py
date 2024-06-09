@@ -8,6 +8,7 @@ Normalizes names to be relative to the archive root without changing the header.
 from zenlib.logging import loggify
 from zenlib.util import handle_plural
 from .symlink import CPIO_Symlink
+from .file import CPIO_File
 
 
 @loggify
@@ -18,42 +19,56 @@ class CPIOArchive(dict):
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError("Entry already exists: %s" % name)
+        # If reproduceable is enabled, set the inode to 0, so it can be recalculated
+        if self.reproducible:
+            value.header.ino = 0
+
         # Check if the inode already exists
-        # Ignore symlinks, they can have the same inode
-        # Remove data from hardlinks, to save space
-        if value.header.ino in self.inodes:
-            if isinstance(value, CPIO_Symlink):
-                self.logger.debug("[%s] Symlink inode already exists: %s" % (value.header.name, value.header.ino))
-            elif self[self.inodes[value.header.ino][0]].data == value.data:
-                self.logger.info("[%s] New hardlink detected, removing data." % value.header.name)
-                # Remove the data from the current entry
-                value.data = b''
-            elif value.data == b'':
-                self.logger.debug("[%s] Hardlink detected." % value.header.name)
-            else:
-                from .common import get_new_inode
-                self.logger.warning("[%s] Inode already exists: %s" % (value.header.name, value.header.ino))
-                value.header.ino = get_new_inode(self.inodes)
-                self.logger.info("New inode: %s", value.header.ino)
-                self.inodes[value.header.ino] = []
-            self.inodes[value.header.ino].append(name)
-        else:
-            # Create an inode entry with the name
-            self.inodes[value.header.ino] = [name]
+        self._update_inodes(value)
 
         # Check if the hash already exists and the data is not empty
         if value.hash in self.hashes and value.data != b'' and not isinstance(value, CPIO_Symlink):
             match = self[self.hashes[value.hash]]
             self.logger.warning("[%s] Hash matches existing entry: %s" % (value.header.name, match.header.name))
-            value.header.ino = match.header.ino
-            # run setitem again to handle the duplicate inode as a hardlink
-            self[name] = value
+            if match.data == value.data:
+                self.logger.info("[%s] New hardlink detected by hash match." % value.header.name)
+                self.inodes[value.header.ino].remove(value.header.name)  # Remove the name from the inode list
+                value.header.ino = match.header.ino
+                self._update_inodes(value)  # Update the inode list
+            else:
+                raise ValueError("[%s] Hash collision detected!" % value.header.name)
         else:
             # Add the name to the hash table
             self.hashes[value.hash] = name
 
         super().__setitem__(name, value)
         self._update_nlinks(value.header.ino)
+
+    def _update_inodes(self, entry):
+        """
+        Checks if an entry exists with the same inode,
+        if it's a hardlink, remove the data in the copy.
+        """
+        if entry.header.ino in self.inodes:
+            if isinstance(entry, CPIO_File) and self[self.inodes[entry.header.ino][0]].data == entry.data:
+                self.logger.info("[%s] New hardlink detected, removing data." % entry.header.name)
+                # Remove the data from the current entry
+                entry.data = b''
+            elif isinstance(entry, CPIO_File) and entry.data == b'':
+                self.logger.debug("[%s] Hardlink detected." % entry.header.name)
+            else:
+                from .common import get_new_inode
+                if entry.header.ino == 0 and not self.reproducible:
+                    self.logger.warning("[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
+                entry.header.ino = get_new_inode(self.inodes)
+                if self.reproducible:
+                    self.logger.debug("[%s] Inode recalculated: %s" % (entry.header.name, entry.header.ino))
+                else:
+                    self.logger.info("[%s] New inode: %s" % (entry.header.name, entry.header.ino))
+                self.inodes[entry.header.ino] = []
+        else:
+            self.inodes[entry.header.ino] = []
+        self.inodes[entry.header.ino].append(entry.header.name)
 
     def _update_nlinks(self, inode):
         """ Update nlinks for all entries with the same inode """
@@ -68,11 +83,11 @@ class CPIOArchive(dict):
         return super().__contains__(self._normalize_name(name))
 
     def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.structure = structure
         self.reproducible = reproducible
         self.inodes = {}
         self.hashes = {}
+        super().__init__(*args, **kwargs)
 
     def update(self, other):
         """ Update the archive with the values from another archive. """
