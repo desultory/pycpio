@@ -33,7 +33,7 @@ class CPIOHeader:
         for name, length in self.structure.items():
             if name in ['magic', 'namesize']:
                 continue
-            if name in self.overrides:
+            elif name != 'mode' and name in self.overrides:
                 continue  # they are processed later
             value = kwargs.pop(name, length * b'0')
             setattr(self, name, value)

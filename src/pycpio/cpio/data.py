@@ -106,6 +106,10 @@ class CPIOData:
         # Get the mode type from the supplied path
         kwargs['mode'] = mode_bytes_from_path(path)
 
+        # Use the path's uid and gid if not provided
+        kwargs['uid'] = kwargs.pop('uid', path.stat().st_uid)
+        kwargs['gid'] = kwargs.pop('gid', path.stat().st_gid)
+
         header = CPIOHeader(*args, **kwargs)
         data = CPIOData.get_subtype(b'', header, *args, **kwargs)
 
