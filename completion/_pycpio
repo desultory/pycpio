@@ -1,0 +1,35 @@
+#compdef pycpio
+
+# Read over each line of the output of ug --dump_args
+# split the line after the first space
+# the first part is the option, the second part is the description
+base_args=()
+while read -r option description; do
+	base_args+=("${option}[$description]")
+done <<< "$(pycpio --dump_args)"
+
+args=("-i[input archive]:archive:_files"
+      "--input[input archive]:archive:_files"
+      "-a[append to archive]:path:_files"
+      "--append[append to archive]:path:_files"
+      "--recursive[recusively append to archive]:path:_files -/"
+      "--relative[relative path]:path:_files -/"
+      "-n[file name]:file:_files"
+      "--name[file name]:file:_files"
+      "-c[char device]:device:_files"
+      "--chardev[char device]:device:_files"
+      "-u[UID]:UID:_users"
+      "--uid[UID]:UID:_users"
+      "-g[GID]:GID:_groups"
+      "--gid[GID]:GID:_groups"
+      "-m[file mode]:mode"
+      "--set-mode[file modes]:mode"
+      "-o[output archive]:archive:_files"
+      "--output[output archive]:archive:_files"
+      "--log-file[specify the log file]:log file:_files"
+      "--log-level[specify the log level]:log level:(0 5 10 20 30 40 50)"
+      "*:file:_files -/")
+
+args+=($base_args[@])
+
+_arguments "${args[@]}"
