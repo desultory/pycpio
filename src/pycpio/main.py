@@ -51,8 +51,7 @@ def main():
         c.add_chardev(chardev_path, major, minor)
 
     if append_file := kwargs.get('append'):
-        relative = kwargs.get('relative')
-        cmdargs = {'relative': relative,
+        cmdargs = {'relative': kwargs.get('relative'),
                    'path': Path(append_file),
                    'name': kwargs.get('name'),
                    'absolute': kwargs.get('absolute')}
@@ -60,8 +59,7 @@ def main():
         c.append_cpio(**cmdargs)
 
     if recursive_path := kwargs.get('recursive'):
-        relative = kwargs.get('relative')
-        cmdargs = {'relative': relative, 'path': Path(recursive_path)}
+        cmdargs = {'relative': kwargs.get('relative'), 'path': Path(recursive_path)}
         c.append_recursive(**cmdargs)
 
     if output_file := kwargs.get('output'):
