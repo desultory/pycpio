@@ -44,9 +44,9 @@ def main():
     if chardev_path := kwargs.get('chardev'):
         major = kwargs.get('major')
         minor = kwargs.get('minor')
-        if not major:
+        if major is None:
             raise ValueError('Character device requires major number')
-        if not minor:
+        if minor is None:
             raise ValueError('Character device requires minor number')
         c.add_chardev(chardev_path, major, minor)
 
