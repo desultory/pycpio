@@ -3,13 +3,13 @@
 from pathlib import Path
 
 from pycpio import PyCPIO
-from zenlib.util import get_kwargs_from_args, get_args_n_logger
+from zenlib.util import get_kwargs
 
 
 def main():
     arguments = [{'flags': ['-i', '--input'], 'help': 'input file'},
                  {'flags': ['-a', '--append'], 'help': 'append to archive'},
-                 {'flags': ['--recursive'], 'action': 'store_true', 'help': 'append to archive recursively'},
+                 {'flags': ['--recursive'], 'action': 'store', 'help': 'append to archive recursively'},
                  {'flags': ['--relative'], 'action': 'store', 'help': 'append to archive relative to this path'},
                  {'flags': ['--absolute'], 'action': 'store_true', 'help': 'allow absolute paths'},
                  {'flags': ['--reproducible'], 'action': 'store_true', 'help': 'Set mtime to 0, start inodes at 0'},
@@ -26,48 +26,51 @@ def main():
                  {'flags': ['-l', '--list'], 'action': 'store_true', 'help': 'list CPIO contents'},
                  {'flags': ['-p', '--print'], 'action': 'store_true', 'help': 'print CPIO contents'}]
 
-    args, logger = get_args_n_logger(package=__package__, description='PyCPIO', arguments=arguments, drop_default=True)
-    kwargs = get_kwargs_from_args(args, logger=logger)
+    kwargs = get_kwargs(package=__package__, description='PyCPIO', arguments=arguments, drop_default=True)
 
     c = PyCPIO(**kwargs)
-    if 'input' in args:
-        c.read_cpio_file(Path(args.input))
+    if input_file := kwargs.get('input'):
+        c.read_cpio_file(Path(input_file))
 
-    if 'rm' in args:
-        c.remove_cpio(args.rm)
+    if rm_args := kwargs.get('rm'):
+        c.remove_cpio(rm_args)
 
-    if 'symlink' in args:
-        if not args.name:
-            raise ValueError('Symlink requires a name')
-        c.add_symlink(args.name, args.symlink)
-
-    if 'chardev' in args:
-        if not args.major or not args.minor:
-            raise ValueError('Character device requires major and minor numbers')
-        c.add_chardev(args.chardev, int(args.major), int(args.minor))
-
-    if 'append' in args:
-        relative = True if 'relative' in args and args.relative else False
-        cmdargs = {'relative': relative, 'path': Path(args.append)}
-
-        if 'name' in args:
-            cmdargs['name'] = args.name
-
-        if 'absolute' in args:
-            cmdargs['absolute'] = args.absolute
-
-        if 'recursive' in args:
-            c.append_recursive(**cmdargs)
+    if symlink_dest := kwargs.get('symlink'):
+        if name := kwargs.get('name'):
+            c.add_symlink(name, symlink_dest)
         else:
-            c.append_cpio(**cmdargs)
+            raise ValueError('Symlink requires a name')
 
-    if 'output' in args:
-        c.write_cpio_file(Path(args.output))
+    if chardev_path := kwargs.get('chardev'):
+        major = kwargs.get('major')
+        minor = kwargs.get('minor')
+        if not major:
+            raise ValueError('Character device requires major number')
+        if not minor:
+            raise ValueError('Character device requires minor number')
+        c.add_chardev(chardev_path, major, minor)
 
-    if 'list' in args:
+    if append_file := kwargs.get('append'):
+        relative = kwargs.get('relative')
+        cmdargs = {'relative': relative,
+                   'path': Path(append_file),
+                   'name': kwargs.get('name'),
+                   'absolute': kwargs.get('absolute')}
+
+        c.append_cpio(**cmdargs)
+
+    if recursive_path := kwargs.get('recursive'):
+        relative = kwargs.get('relative')
+        cmdargs = {'relative': relative, 'path': Path(recursive_path)}
+        c.append_recursive(**cmdargs)
+
+    if output_file := kwargs.get('output'):
+        c.write_cpio_file(Path(output_file))
+
+    if kwargs.get('list'):
         print(c.list_files())
 
-    if 'print' in args:
+    if kwargs.get('print'):
         print(c)
 
 
