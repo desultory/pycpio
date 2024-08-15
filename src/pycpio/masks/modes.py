@@ -1,7 +1,3 @@
-"""
-CPIO header mode masks.
-"""
-
 from enum import Enum
 from pathlib import Path
 
@@ -9,6 +5,7 @@ from pathlib import Path
 class CPIOModes(Enum):
     """
     Enum for CPIO mode masks.
+    This essentially represents the file type.
     """
     Socket = 0o140000  # Socket
     Symlink = 0o120000  # Symbolic link
@@ -38,6 +35,8 @@ def resolve_mode_bytes(mode: bytes) -> CPIOModes:
 def mode_bytes_from_path(file_path: Path) -> CPIOModes:
     """
     Gets the mode type bytes from the given path.
+    The order of the checks is important,
+    as some types are subsets of others.
     """
     if file_path.is_symlink():
         return CPIOModes.Symlink.value
@@ -53,13 +52,3 @@ def mode_bytes_from_path(file_path: Path) -> CPIOModes:
         return CPIOModes.File.value
 
     raise ValueError(f"Invalid mode: {file_path}")
-
-
-
-
-
-
-
-
-
-

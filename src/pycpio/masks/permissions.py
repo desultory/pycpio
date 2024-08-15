@@ -1,14 +1,8 @@
-"""
-CPIO header permissions
-"""
-
 from enum import Enum
 
 
 class Permissions(Enum):
-    """
-    Enum for CPIO file permissions.
-    """
+    """ Enum for CPIO file permissions. """
     SUID = 0o004000  # Set UID bit
     SGID = 0o002000  # Set GID
     SVTX = 0o001000  # Sticky bit
@@ -24,9 +18,7 @@ class Permissions(Enum):
 
 
 def resolve_permissions(mode: bytes) -> set:
-    """
-    Resolves the permissions from the mode bytes.
-    """
+    """ Resolves the permissions from the mode bytes. """
     perms = set()
     for perm in Permissions:
         if int(mode, 16) & perm.value == perm.value:
@@ -35,9 +27,7 @@ def resolve_permissions(mode: bytes) -> set:
 
 
 def print_permissions(passed_perms: set, extended=False) -> str:
-    """
-    Prints the permissions in a human readable format.
-    """
+    """ Prints the permissions in a human readable format. """
     out = ""
     for permission in Permissions:
         # Skip the setuid, setgid, and sticky bit
@@ -56,4 +46,3 @@ def print_permissions(passed_perms: set, extended=False) -> str:
             out += "-"
 
     return out.rstrip()
-

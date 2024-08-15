@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from typing import Union
 
@@ -44,7 +43,10 @@ class CPIOReader:
         return data
 
     def read_cpio_file(self):
-        """ Reads a CPIO archive. """
+        """
+        Reads a CPIO archive into self.cpio_file.
+        Resets the offset to 0, preparing for processing.
+        """
         self.logger.debug("Reading file: %s" % self.file_path)
         with open(self.file_path, 'rb') as cpio_file:
             self.cpio_file = cpio_file.read()
@@ -93,6 +95,11 @@ class CPIOReader:
             self.logger.warning("Reached end of file without finding trailer")
 
     def process_cpio_file(self):
-        """ Processes a CPIO archive."""
+        """
+        Processes a CPIO archive.
+        Uses reads data from self.cpio_file, and processes it into CPIOData objects.
+        When opjects are processed, the internal offset is updated.
+        Processed objects are stored in self.entries.
+        """
         for cpio_entry in self.process_cpio_data():
             self.entries.add_entry(cpio_entry)
