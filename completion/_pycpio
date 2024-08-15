@@ -19,16 +19,16 @@ args=("-i[input archive]:archive:_files"
       "-c[char device]:device:_files"
       "--chardev[char device]:device:_files"
       "-u[UID]:UID:_users"
-      "--uid[UID]:UID:_users"
+      "--set-owner[UID]:UID:_users"
       "-g[GID]:GID:_groups"
-      "--gid[GID]:GID:_groups"
+      "--set-group[GID]:GID:_groups"
       "-m[file mode]:mode"
       "--set-mode[file modes]:mode"
       "-o[output archive]:archive:_files"
       "--output[output archive]:archive:_files"
       "--log-file[specify the log file]:log file:_files"
       "--log-level[specify the log level]:log level:(0 5 10 20 30 40 50)"
-      "*:file:_files -/")
+      "*:file:_files")
 
 args+=($base_args[@])
 

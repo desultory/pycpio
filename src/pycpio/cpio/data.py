@@ -1,7 +1,3 @@
-"""
-CPIO data objects
-"""
-
 from pathlib import Path
 
 from zenlib.logging import loggify
