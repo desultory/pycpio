@@ -1,8 +1,3 @@
-"""
-CPIO header class definition.
-"""
-
-
 from zenlib.logging import loggify
 from pycpio.masks import resolve_mode_bytes, print_permissions, resolve_permissions
 
@@ -13,6 +8,7 @@ class CPIOHeader:
     CPIO HEADER, can be initialized from a segment of header data with or without a structure definition.
     """
     def __init__(self, header_data=b'', overrides={}, *args, **kwargs):
+        self.overrides = overrides
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
             self.from_bytes(header_data)
@@ -22,7 +18,7 @@ class CPIOHeader:
         else:
             raise NotImplementedError("CPIOEntry must be initialized with header data or a name")
 
-        self.process_overrides(overrides)
+        self.process_overrides()
         # Set nlink to 1, additions are made in the CPIOArchive class
         self.nlink = b'00000001'
 
@@ -37,6 +33,8 @@ class CPIOHeader:
         for name, length in self.structure.items():
             if name in ['magic', 'namesize']:
                 continue
+            if name in self.overrides:
+                continue  # they are processed later
             value = kwargs.pop(name, length * b'0')
             setattr(self, name, value)
 
@@ -57,14 +55,31 @@ class CPIOHeader:
 
     def __setattr__(self, key, value):
         """
-        If the key is in the structure, set the value to the bytes representation.
+        For uid/gid definitions, try to resolve the user/group.
+
+        If the key is in the structure, set the value to the bytes representation
+        if it is not already bytes.
+
         If the filesize changes, log a warning.
+
         Check the mode and set the mode_type and permissions attributes accordingly.
         If setting the name, add a null byte to the end and set the namesize attribute.
         """
+        if key in ['uid', 'gid'] and not isinstance(value, bytes):
+            try:
+                value = int(value)
+            except ValueError:
+                from pwd import getpwnam
+                from grp import getgrnam
+                if key == 'uid':
+                    value = getpwnam(value).pw_uid
+                elif key == 'gid':
+                    value = getgrnam(value).gr_gid
+                self.logger.debug("Resolved %s: %s" % (key, repr(value)))
+
         if hasattr(self, 'structure') and key in self.structure and not isinstance(value, bytes):
             length = self.structure[key]
-            self.logger.debug("Converting %s to bytes: %s" % (key, value))
+            self.logger.debug("Converting %s to bytes: %s" % (key, repr(value)))
             if isinstance(value, str):
                 value = format(int(value, 16), f'0{length}x')
             elif isinstance(value, float):
@@ -77,7 +92,7 @@ class CPIOHeader:
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
 
         if key == 'filesize' and value != b'00000000':
-            if getattr(self, 'filesize', b'00000000') not in [value, b'00000000']:
+            if getattr(self, 'filesize', b'00000000').lower() not in [value, b'00000000']:
                 self.logger.warning("[%s] Changed filesize: %s -> %s" % (self.name, self.filesize, value))
         elif key == 'filesize' and value == b'00000000':
             if getattr(self, 'filesize', b'00000000') != b'00000000':
@@ -105,22 +120,24 @@ class CPIOHeader:
                 self.logger.debug("Name size changed: %s -> %s" % (int(self.namesize, 16), namesize))
             self.namesize = namesize
 
-    def process_overrides(self, overrides: dict) -> None:
+    def process_overrides(self) -> None:
         """ Process the overrides dictionary and set the attributes on the object. """
         for attribute in self.structure:
-            if attribute in overrides:
-                self.logger.log(5, "[%s] Pre-override: %s" % (attribute, getattr(self, attribute)))
+            if attribute in self.overrides:
+                if hasattr(self, attribute):
+                    self.logger.log(5, "[%s] Pre-override: %s" % (attribute, getattr(self, attribute)))
                 if attribute == 'mode':
                     # Mask the mode, then add the override
-                    value = (int(self.mode, 16) & 0o7777000) | (overrides[attribute] & 0o777)
+                    value = (int(self.mode, 16) & 0o7777000) | (self.overrides[attribute] & 0o777)
                 else:
-                    value = overrides[attribute]
+                    value = self.overrides[attribute]
                 self.logger.debug("[%s] Setting override: %s" % (attribute, value))
                 setattr(self, attribute, value)
 
     def _read_bytes(self, num_bytes: int) -> bytes:
         """ Read the specified number of bytes from the data, incrementing the offset, then returning the data. """
         data = self.data[self.offset:self.offset + num_bytes]
+        self.logger.log(5, "Read %d bytes: %s" % (num_bytes, data))
         self.offset += num_bytes
         return data
 
@@ -142,6 +159,8 @@ class CPIOHeader:
 
             if key == 'check' and data != b'0' * 8:
                 raise ValueError("Invalid check: %s" % data)
+            elif key in self.overrides:
+                self.logger.debug("Delaying overridden parameter processing: %s" % key)
             else:
                 setattr(self, key, data)
                 self.logger.debug("Parsed %s: %s", key, data)
@@ -195,6 +214,6 @@ class CPIOHeader:
             else:
                 out_str += f"    {attr}: {int(getattr(self, attr), 16)}"
 
-        out_str += f"    Permissions: {print_permissions(self.permissions)} {int(self.uid)} {int(self.gid)}"
+        out_str += f"    Permissions: {print_permissions(self.permissions)} {int(self.uid, 16)} {int(self.gid, 16)}"
         return out_str
 

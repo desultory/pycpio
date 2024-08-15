@@ -20,16 +20,16 @@ def resolve_mode_bytes(mode: bytes) -> CPIOModes:
     """
     Resolve the mode mask from the given bytes.
     """
-    mode_int = int(mode.decode('ascii'), 16)
+    mode_int = int(mode, 16)
     # Handle the trailer
     if not mode_int:
         return None
 
-    for mode in CPIOModes:
-        if mode.value & mode_int == mode.value:
-            return mode
+    for cpiomode in CPIOModes:
+        if cpiomode.value & mode_int == cpiomode.value:
+            return cpiomode
 
-    raise ValueError(f"Invalid mode: {mode}")
+    raise ValueError(f"Unknown mode: {mode}")
 
 
 def mode_bytes_from_path(file_path: Path) -> CPIOModes:
