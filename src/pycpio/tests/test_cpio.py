@@ -1,6 +1,7 @@
 from unittest import TestCase, main, expectedFailure
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from hashlib import sha256
 from uuid import uuid4
 
@@ -18,27 +19,21 @@ class TestCpio(TestCase):
         self.make_workdir()
 
     def tearDown(self):
-        from shutil import rmtree
-        rmtree(self.workdir)
+        del self.workdir
         del self.cpio
 
     def make_workdir(self):
         """
         Create a temporary directory for testing.
-        Uses a UUID under /tmp/pycpio-test-<uuid>
         sets self.workdir to the Path object of the directory
         initializes self.test_files as an empty list
         """
-        workdir = Path('/tmp/pycpio-test-' + str(uuid4()))
-        if not workdir.exists():
-            workdir.mkdir()
-
-        self.workdir = workdir
+        self.workdir = TemporaryDirectory(prefix='pycpio-test-', ignore_cleanup_errors=True)
         self.test_files = []
 
     def make_test_file(self, subdir=None, data=None):
         """ Creates a test file in the workdir """
-        file_dir = self.workdir if subdir is None else self.workdir / Path(subdir)
+        file_dir = Path(self.workdir.name) if subdir is None else Path(self.workdir.name) / Path(subdir)
         if not file_dir.exists():
             file_dir.mkdir()
         file = file_dir / str(uuid4())
@@ -61,7 +56,7 @@ class TestCpio(TestCase):
         If relative is True, the file is checked relative to the workdir.
         Otherwise, the leading '/' is stripped from the file path.
         """
-        filepath = str(file.relative_to(self.workdir)) if relative else str(file).lstrip('/')
+        filepath = str(file.relative_to(self.workdir.name)) if relative else str(file).lstrip('/')
 
         if filepath not in self.cpio.entries:
             self.fail("File not found in CPIO: " + filepath)
@@ -80,14 +75,14 @@ class TestCpio(TestCase):
         self.make_test_files(10)
         for _ in range(5):
             self.make_test_files(2, subdir=str(uuid4()))
-        self.cpio.append_recursive(self.workdir, relative=True)
+        self.cpio.append_recursive(self.workdir.name, relative=True)
         self.check_all_files(relative=True)
 
     def test_recursive(self):
         self.make_test_files(10)
         for _ in range(5):
             self.make_test_files(2, subdir=str(uuid4()))
-        self.cpio.append_recursive(self.workdir)
+        self.cpio.append_recursive(self.workdir.name)
         self.check_all_files()
 
     def test_pack(self):
@@ -97,12 +92,12 @@ class TestCpio(TestCase):
 
     def test_relative_pack(self):
         test_file = self.make_test_file()
-        self.cpio.append_cpio(test_file, relative=self.workdir)
+        self.cpio.append_cpio(test_file, relative=self.workdir.name)
         self.check_file(test_file, relative=True)
 
     def test_dedup(self):
         self.make_test_files(10, data='test')
-        self.cpio.append_recursive(self.workdir)
+        self.cpio.append_recursive(self.workdir.name)
         self.check_all_files()
         filename_lengths = sum([len(x) for x in self.cpio.entries])
         target_length = (122 * 10) + 8 + filename_lengths
