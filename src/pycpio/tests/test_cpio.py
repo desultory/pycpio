@@ -1,11 +1,14 @@
-from unittest import TestCase, main
+from unittest import TestCase, main, expectedFailure
 
 from pathlib import Path
 from hashlib import sha256
 from uuid import uuid4
 
 from pycpio import PyCPIO
+from pycpio.header import CPIOHeader
 from zenlib.logging import loggify
+
+from cpio_test_headers import newc_test_headers, build_newc_header
 
 
 @loggify
@@ -105,6 +108,32 @@ class TestCpio(TestCase):
         target_length = (122 * 10) + 8 + filename_lengths
         if len(bytes(self.cpio.entries)) > target_length:
             self.fail("Deduplication failed, got " + str(len(bytes(self.cpio.entries))) + " bytes, expected no more than: " + str(target_length))
+
+    @expectedFailure
+    def test_dup(self):
+        test_file = self.make_test_file()
+        self.cpio.append_cpio(test_file)
+        self.cpio.append_cpio(test_file)
+        self.assertEqual(len(self.cpio.entries), 1)
+
+    def test_newc_from_data(self):
+        for header_data in newc_test_headers:
+            header = build_newc_header(header_data)
+            test_header = CPIOHeader(header)
+            # Here, the build header is passed as data to the CPIOHeader constructor
+            # It should populate all data as attributes within the object, equal
+            # To the dictionary structure/data in the test_headers list.
+            for attr, value in header_data.items():
+                self.assertEqual(getattr(test_header, attr), value)
+
+    def test_newc_from_kwargs(self):
+        for header_data in newc_test_headers:
+            test_header = CPIOHeader(name='.', **header_data)  # A name is required for the namesize
+            # Here, the build header is passed as kwargs to the CPIOHeader constructor
+            # It should populate all data as attributes within the object, equal
+            # To the dictionary structure/data in the test_headers list.
+            for attr, value in header_data.items():
+                self.assertEqual(getattr(test_header, attr), value)
 
 
 if __name__ == '__main__':
