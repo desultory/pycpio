@@ -86,6 +86,10 @@ class CPIOArchive(dict):
         """ Check if an entry exists in the archive """
         return super().__contains__(self._normalize_name(name))
 
+    def __getitem__(self, name):
+        """ Get an entry from the archive """
+        return super().__getitem__(self._normalize_name(name))
+
     def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
         self.structure = structure
         self.reproducible = reproducible
@@ -140,3 +144,11 @@ class CPIOArchive(dict):
     def __bytes__(self):
         """ Return the archive as a byte string, packed with all the data. """
         return b''.join([bytes(data) for data in self.values()])
+
+    def list(self):
+        """ Return a list of all the entries in the archive. """
+        return "\n".join([name for name in self.keys()])
+
+    def __str__(self):
+        """ Return a string representation of the archive. """
+        return "\n".join([str(data) for data in self.values()])

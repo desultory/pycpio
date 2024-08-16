@@ -64,7 +64,7 @@ class PyCPIO:
 
     def list_files(self):
         """ Returns a list of files in the CPIO archive. """
-        return '\n'.join([name for name in self.entries.keys()])
+        return str(self.entries.list())
 
     def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None, *args, **kwargs):
         """ Creates a CPIOData object and adds it to the CPIO archive. """
@@ -78,4 +78,4 @@ class PyCPIO:
         self.entries.add_entry(CPIOData.create_entry(*args, **kwargs))
 
     def __str__(self):
-        return "\n".join([str(f) for f in self.entries.values()])
+        return str(self.entries)
