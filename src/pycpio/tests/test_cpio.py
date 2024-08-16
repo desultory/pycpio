@@ -1,4 +1,4 @@
-from unittest import TestCase, main
+from unittest import TestCase, main, expectedFailure
 
 from pathlib import Path
 from hashlib import sha256
@@ -105,6 +105,13 @@ class TestCpio(TestCase):
         target_length = (122 * 10) + 8 + filename_lengths
         if len(bytes(self.cpio.entries)) > target_length:
             self.fail("Deduplication failed, got " + str(len(bytes(self.cpio.entries))) + " bytes, expected no more than: " + str(target_length))
+
+    @expectedFailure
+    def test_dup(self):
+        test_file = self.make_test_file()
+        self.cpio.append_cpio(test_file)
+        self.cpio.append_cpio(test_file)
+        self.assertEqual(len(self.cpio.entries), 1)
 
 
 if __name__ == '__main__':
