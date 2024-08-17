@@ -22,6 +22,7 @@ def main():
                  {'flags': ['-u', '--set-owner'], 'action': 'store', 'help': 'set UID on all files', 'dest': 'uid'},
                  {'flags': ['-g', '--set-group'], 'action': 'store', 'help': 'set GID on all files', 'dest': 'gid'},
                  {'flags': ['-m', '--set-mode'], 'action': 'store', 'help': 'set mode on all files', 'type': int, 'dest': 'mode'},
+                 {'flags': ['-z', '--compress'], 'action': 'store', 'help': 'compression type'},
                  {'flags': ['-o', '--output'], 'help': 'output file'},
                  {'flags': ['-l', '--list'], 'action': 'store_true', 'help': 'list CPIO contents'},
                  {'flags': ['-p', '--print'], 'action': 'store_true', 'help': 'print CPIO contents'}]
@@ -63,7 +64,8 @@ def main():
         c.append_recursive(**cmdargs)
 
     if output_file := kwargs.get('output'):
-        c.write_cpio_file(Path(output_file))
+        compression = kwargs.get('compress')
+        c.write_cpio_file(Path(output_file), compression=compression)
 
     if kwargs.get('list'):
         print(c.list_files())
