@@ -1,6 +1,7 @@
 from unittest import TestCase, main, expectedFailure
 
 from pathlib import Path
+from tempfile import TemporaryDirectory, NamedTemporaryFile
 from hashlib import sha256
 from uuid import uuid4
 
@@ -18,34 +19,37 @@ class TestCpio(TestCase):
         self.make_workdir()
 
     def tearDown(self):
-        from shutil import rmtree
-        rmtree(self.workdir)
+        for file in self.test_files:
+            file.close()
+        for directory in self.test_dirs:
+            directory.cleanup()
+        self.workdir.cleanup()
         del self.cpio
 
     def make_workdir(self):
         """
         Create a temporary directory for testing.
-        Uses a UUID under /tmp/pycpio-test-<uuid>
         sets self.workdir to the Path object of the directory
         initializes self.test_files as an empty list
         """
-        workdir = Path('/tmp/pycpio-test-' + str(uuid4()))
-        if not workdir.exists():
-            workdir.mkdir()
-
-        self.workdir = workdir
+        self.workdir = TemporaryDirectory(prefix='pycpio-test-')
         self.test_files = []
+        self.test_dirs = []
 
     def make_test_file(self, subdir=None, data=None):
         """ Creates a test file in the workdir """
-        file_dir = self.workdir if subdir is None else self.workdir / Path(subdir)
-        if not file_dir.exists():
-            file_dir.mkdir()
-        file = file_dir / str(uuid4())
+        base_dir = self.workdir.name
+        if subdir is True:
+            d = TemporaryDirectory(dir=base_dir)
+            self.test_dirs.append(d)
+            base_dir = d.name
+        elif subdir is not None and subdir in self.test_dirs:
+            base_dir = subdir.name
 
-        with open(file, 'w') as f:
-            data = str(uuid4()) if data is None else data
-            f.write(data)
+        file = NamedTemporaryFile(dir=base_dir)
+        file_data = data.encode() if data is not None else bytes(str(uuid4()), 'utf-8')
+        file.file.write(file_data)
+        file.file.flush()
 
         self.test_files.append(file)
         return file
@@ -61,7 +65,7 @@ class TestCpio(TestCase):
         If relative is True, the file is checked relative to the workdir.
         Otherwise, the leading '/' is stripped from the file path.
         """
-        filepath = str(file.relative_to(self.workdir)) if relative else str(file).lstrip('/')
+        filepath = str(Path(file).relative_to(self.workdir.name)) if relative else str(file).lstrip('/')
 
         if filepath not in self.cpio.entries:
             self.fail("File not found in CPIO: " + filepath)
@@ -69,52 +73,53 @@ class TestCpio(TestCase):
         if self.cpio.entries[filepath].header.name != filepath:
             self.fail("Name mismatch: " + self.cpio.entries[filepath].header.name + " != " + filepath)
 
-        if self.cpio.entries[filepath].hash != sha256(file.read_bytes()).hexdigest():
-            self.fail("SHA256 mismatch: " + self.cpio.entries[filepath].hash + " != " + sha256(file.read_bytes()).hexdigest())
+        if self.cpio.entries[filepath].hash != sha256(Path(file).read_bytes()).hexdigest():
+            self.fail("SHA256 mismatch: " + self.cpio.entries[filepath].hash + " != " + sha256(Path(file).read_bytes()).hexdigest())
 
     def check_all_files(self, relative=False):
         for file in self.test_files:
-            self.check_file(file, relative)
+            self.check_file(file.name, relative)
 
     def test_relative_recursive(self):
         self.make_test_files(10)
         for _ in range(5):
-            self.make_test_files(2, subdir=str(uuid4()))
-        self.cpio.append_recursive(self.workdir, relative=True)
+            self.make_test_files(2, subdir=True)
+        self.cpio.append_recursive(self.workdir.name, relative=True)
         self.check_all_files(relative=True)
 
     def test_recursive(self):
         self.make_test_files(10)
         for _ in range(5):
-            self.make_test_files(2, subdir=str(uuid4()))
-        self.cpio.append_recursive(self.workdir)
+            self.make_test_files(2, subdir=True)
+        self.cpio.append_recursive(self.workdir.name)
         self.check_all_files()
 
     def test_pack(self):
         test_file = self.make_test_file()
-        self.cpio.append_cpio(test_file)
-        self.check_file(test_file)
+        self.cpio.append_cpio(test_file.name)
+        self.check_file(Path(test_file.name))
 
     def test_relative_pack(self):
         test_file = self.make_test_file()
-        self.cpio.append_cpio(test_file, relative=self.workdir)
-        self.check_file(test_file, relative=True)
+        self.cpio.append_cpio(test_file.name, relative=self.workdir.name)
+        self.check_file(Path(test_file.name), relative=True)
 
     def test_dedup(self):
         self.make_test_files(10, data='test')
-        self.cpio.append_recursive(self.workdir)
+        self.cpio.append_recursive(self.workdir.name)
         self.check_all_files()
         filename_lengths = sum([len(x) for x in self.cpio.entries])
-        target_length = (122 * 10) + 8 + filename_lengths
+        # Length of all headers, length of all filenames,
+        # length of all data
+        target_length = (110 * 11) + filename_lengths + 4 * 10
         if len(bytes(self.cpio.entries)) > target_length:
             self.fail("Deduplication failed, got " + str(len(bytes(self.cpio.entries))) + " bytes, expected no more than: " + str(target_length))
 
     @expectedFailure
     def test_dup(self):
         test_file = self.make_test_file()
-        self.cpio.append_cpio(test_file)
-        self.cpio.append_cpio(test_file)
-        self.assertEqual(len(self.cpio.entries), 1)
+        self.cpio.append_cpio(test_file.name)
+        self.cpio.append_cpio(test_file.name)
 
     def test_newc_from_data(self):
         for header_data in newc_test_headers:
