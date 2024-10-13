@@ -7,14 +7,16 @@ Normalizes names to be relative to the archive root without changing the header.
 
 from zenlib.logging import loggify
 from zenlib.util import handle_plural
-from .symlink import CPIO_Symlink
+
 from .file import CPIO_File
+from .symlink import CPIO_Symlink
 
 
 @loggify
 class CPIOArchive(dict):
-    from .data import CPIOData
     from pycpio.header import HEADER_NEW
+
+    from .data import CPIOData
 
     def __setitem__(self, name, value):
         if name in self:
@@ -30,7 +32,7 @@ class CPIOArchive(dict):
         self._update_inodes(value)
 
         # Check if the hash already exists and the data is not empty
-        if value.hash in self.hashes and value.data != b'' and not isinstance(value, CPIO_Symlink):
+        if value.hash in self.hashes and value.data != b"" and not isinstance(value, CPIO_Symlink):
             match = self[self.hashes[value.hash]]
             self.logger.warning("[%s] Hash matches existing entry: %s" % (value.header.name, match.header.name))
             if match.data == value.data:
@@ -56,11 +58,12 @@ class CPIOArchive(dict):
             if isinstance(entry, CPIO_File) and self[self.inodes[entry.header.ino][0]].data == entry.data:
                 self.logger.info("[%s] New hardlink detected, removing data." % entry.header.name)
                 # Remove the data from the current entry
-                entry.data = b''
-            elif isinstance(entry, CPIO_File) and entry.data == b'':
+                entry.data = b""
+            elif isinstance(entry, CPIO_File) and entry.data == b"":
                 self.logger.debug("[%s] Hardlink detected." % entry.header.name)
             else:
                 from .common import get_new_inode
+
                 if entry.header.ino == 0 and not self.reproducible:
                     self.logger.warning("[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
                 entry.header.ino = get_new_inode(self.inodes)
@@ -74,7 +77,7 @@ class CPIOArchive(dict):
         self.inodes[entry.header.ino].append(entry.header.name)
 
     def _update_nlinks(self, entry):
-        """ Update nlinks for all entries with the same inode """
+        """Update nlinks for all entries with the same inode"""
         inode = entry.header.ino
         # Get the number of links based on the number of entries with that inode
         nlink = len(self.inodes[inode])
@@ -83,11 +86,11 @@ class CPIOArchive(dict):
             self[name].header.nlink = nlink
 
     def __contains__(self, name):
-        """ Check if an entry exists in the archive """
+        """Check if an entry exists in the archive"""
         return super().__contains__(self._normalize_name(name))
 
     def __getitem__(self, name):
-        """ Get an entry from the archive """
+        """Get an entry from the archive"""
         return super().__getitem__(self._normalize_name(name))
 
     def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
@@ -98,17 +101,17 @@ class CPIOArchive(dict):
         super().__init__(*args, **kwargs)
 
     def update(self, other):
-        """ Update the archive with the values from another archive. """
+        """Update the archive with the values from another archive."""
         self.add_entry(other.values())
 
     def pop(self, name):
-        """ Remove an entry from the archive """
+        """Remove an entry from the archive"""
         normalized_name = self._normalize_name(name)
         if normalized_name not in self:
             raise KeyError("Entry does not exist: %s" % name)
 
         siblings = self.inodes[self[normalized_name].header.ino]
-        if len(siblings) > 1 and self[normalized_name].data != b'':
+        if len(siblings) > 1 and self[normalized_name].data != b"":
             # Get the data associated with this inode
             for sibling_name in siblings:
                 if self[sibling_name].data:
@@ -129,12 +132,12 @@ class CPIOArchive(dict):
         return super().pop(normalized_name)
 
     def _normalize_name(self, name):
-        """ Make all names relative to the archive root """
+        """Make all names relative to the archive root"""
         return name.lstrip("/")
 
     @handle_plural
     def add_entry(self, data: CPIOData):
-        """ Add a new entry to the archive """
+        """Add a new entry to the archive"""
         entry_name = self._normalize_name(data.header.name)
         if self.reproducible:
             data.header.mtime = 0
@@ -142,13 +145,13 @@ class CPIOArchive(dict):
         self.logger.debug("Added entry: %s", entry_name)
 
     def __bytes__(self):
-        """ Return the archive as a byte string, packed with all the data. """
-        return b''.join([bytes(data) for data in self.values()])
+        """Return the archive as a byte string, packed with all the data."""
+        return b"".join([bytes(data) for data in self.values()])
 
     def list(self):
-        """ Return a list of all the entries in the archive. """
+        """Return a list of all the entries in the archive."""
         return "\n".join([name for name in self.keys()])
 
     def __str__(self):
-        """ Return a string representation of the archive. """
+        """Return a string representation of the archive."""
         return "\n".join([str(data) for data in self.values()])

@@ -1,6 +1,4 @@
-"""
-Common functions for CPIO objects.
-"""
+"""Common functions for CPIO objects."""
 
 MAX_INODES = 0xFFFFFFFF
 
