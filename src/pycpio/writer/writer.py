@@ -32,7 +32,7 @@ class CPIOWriter:
     def __bytes__(self):
         """ Creates a bytes representation of the CPIOData objects. """
         cpio_bytes = bytes(self.cpio_entries)
-        trailer = CPIOHeader(structure=self.structure, name="TRAILER!!!", logger=self.logger, _log_init=False)
+        trailer = CPIOHeader(structure=self.structure, name="TRAILER!!!", logger=self.logger)
         self.logger.debug("Building trailer: %s" % trailer)
         cpio_bytes += bytes(trailer)
         return cpio_bytes

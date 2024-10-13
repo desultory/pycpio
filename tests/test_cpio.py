@@ -15,7 +15,7 @@ from cpio_test_headers import newc_test_headers, build_newc_header
 @loggify
 class TestCpio(TestCase):
     def setUp(self):
-        self.cpio = PyCPIO(logger=self.logger, _log_init=False)
+        self.cpio = PyCPIO(logger=self.logger)
         self.make_workdir()
 
     def tearDown(self):

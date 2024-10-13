@@ -29,7 +29,7 @@ def main():
 
     kwargs = get_kwargs(package=__package__, description='PyCPIO', arguments=arguments, drop_default=True)
 
-    c = PyCPIO(**kwargs, _log_init=False)
+    c = PyCPIO(**kwargs)
     if input_file := kwargs.get('input'):
         c.read_cpio_file(Path(input_file))
 

@@ -19,7 +19,7 @@ class CPIOReader:
         assert self.file_path.exists(), "File does not exist: %s" % self.file_path
 
         self.overrides = overrides
-        self.entries = CPIOArchive(logger=self.logger, _log_init=False)
+        self.entries = CPIOArchive(logger=self.logger)
 
         self.read_cpio_file()
         self.process_cpio_file()
@@ -60,7 +60,7 @@ class CPIOReader:
         header_data = self._read_bytes(110)
 
         # Start using the class kwargs, as they may contain overrides
-        kwargs = {'header_data': header_data, 'overrides': self.overrides, 'logger': self.logger, '_log_init': False}
+        kwargs = {'header_data': header_data, 'overrides': self.overrides, 'logger': self.logger}
 
         try:
             header = CPIOHeader(**kwargs)
@@ -87,7 +87,7 @@ class CPIOReader:
 
             if header := self.process_cpio_header():
                 kwargs = {'data': self._read_bytes(int(header.filesize, 16), pad=True),
-                          'header': header, '_log_init': False}
+                          'header': header}
                 yield CPIOData.get_subtype(**kwargs)
             else:
                 break

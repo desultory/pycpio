@@ -16,7 +16,7 @@ class PyCPIO:
         self.structure = structure
         self.reproducible = reproducible
         self.overrides = {}
-        self.entries = CPIOArchive(self.structure, reproducible=reproducible, logger=self.logger, _log_init=False)
+        self.entries = CPIOArchive(self.structure, reproducible=reproducible, logger=self.logger)
 
         for attr in self.structure:
             if value := kwargs.pop(attr, None):
@@ -26,7 +26,7 @@ class PyCPIO:
     def append_cpio(self, path: Path, name: str = None, *args, **kwargs):
         """ Appends a file or directory to the CPIO archive. """
         kwargs.update({'path': path, 'structure': self.structure, 'overrides': self.overrides,
-                       'logger': self.logger, '_log_init': False})
+                       'logger': self.logger})
         if name:
             kwargs['name'] = name
         self.entries.add_entry(CPIOData.from_path(**kwargs))
@@ -34,7 +34,7 @@ class PyCPIO:
     def append_recursive(self, path: Path, *args, **kwargs):
         """ Appends all files under a directory into the CPIO archive. """
         kwargs.update({'path': path, 'structure': self.structure, 'overrides': self.overrides,
-                       'logger': self.logger, '_log_init': False})
+                       'logger': self.logger})
         self.entries.add_entry(CPIOData.from_dir(**kwargs))
 
     def remove_cpio(self, name: str):
@@ -52,7 +52,7 @@ class PyCPIO:
     def read_cpio_file(self, file_path: Path):
         """ Creates a CPIOReader object and reads the file. """
         kwargs = {'input_file': file_path, 'overrides': self.overrides,
-                  'logger': self.logger, '_log_init': False}
+                  'logger': self.logger}
         reader = CPIOReader(**kwargs)
         self.entries.update(reader.entries)
 
@@ -73,7 +73,7 @@ class PyCPIO:
             overrides['mode'] = mode
             self.logger.debug("Setting override: mode=%s" % mode)
         kwargs = {'name': name, 'structure': self.structure, 'mode': entry_type, 'data': data,
-                  'overrides': overrides, 'logger': self.logger, '_log_init': False, **kwargs}
+                  'overrides': overrides, 'logger': self.logger, **kwargs}
 
         self.entries.add_entry(CPIOData.create_entry(*args, **kwargs))
 
