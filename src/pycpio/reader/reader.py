@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 
-from pycpio.cpio import CPIOArchive, pad_cpio, CPIOData
+from pycpio.cpio import CPIOArchive, CPIOData, pad_cpio
 from pycpio.header import CPIOHeader
 from zenlib.logging import loggify
 
@@ -14,6 +14,7 @@ class CPIOReader:
 
     Once processed, the files are stored in self.entries, which is a dictionary of CPIO entries.
     """
+
     def __init__(self, input_file: Union[Path, str], overrides={}, *args, **kwargs):
         self.file_path = Path(input_file)
         assert self.file_path.exists(), "File does not exist: %s" % self.file_path
@@ -25,11 +26,11 @@ class CPIOReader:
         self.process_cpio_file()
 
     def _read_bytes(self, num_bytes: int, pad=False):
-        """ Reads num_bytes from self.raw_cpio, starting at self.offset. """
+        """Reads num_bytes from self.raw_cpio, starting at self.offset."""
         if not num_bytes:
-            return b''
+            return b""
 
-        data = self.cpio_file[self.offset:self.offset + num_bytes]
+        data = self.cpio_file[self.offset : self.offset + num_bytes]
         if len(data) > 256:
             self.logger.debug("Read %s bytes: %s...%s" % (num_bytes, data[:128], data[-128:]))
         else:
@@ -48,7 +49,7 @@ class CPIOReader:
         Resets the offset to 0, preparing for processing.
         """
         self.logger.debug("Reading file: %s" % self.file_path)
-        with open(self.file_path, 'rb') as cpio_file:
+        with open(self.file_path, "rb") as cpio_file:
             self.cpio_file = cpio_file.read()
             self.logger.info("[%s] Read bytes: %s" % (self.file_path, len(self.cpio_file)))
 
@@ -56,11 +57,11 @@ class CPIOReader:
         self.offset = 0
 
     def process_cpio_header(self) -> CPIOHeader:
-        """ Processes a single CPIO header from self.raw_cpio. """
+        """Processes a single CPIO header from self.raw_cpio."""
         header_data = self._read_bytes(110)
 
         # Start using the class kwargs, as they may contain overrides
-        kwargs = {'header_data': header_data, 'overrides': self.overrides, 'logger': self.logger}
+        kwargs = {"header_data": header_data, "overrides": self.overrides, "logger": self.logger}
 
         try:
             header = CPIOHeader(**kwargs)
@@ -81,13 +82,12 @@ class CPIOReader:
         return header
 
     def process_cpio_data(self):
-        """ Processes the file object self.cpio_file, yielding CPIOData objects. """
+        """Processes the file object self.cpio_file, yielding CPIOData objects."""
         while self.offset < len(self.cpio_file):
             self.logger.debug("At offset: %s" % self.offset)
 
             if header := self.process_cpio_header():
-                kwargs = {'data': self._read_bytes(int(header.filesize, 16), pad=True),
-                          'header': header}
+                kwargs = {"data": self._read_bytes(int(header.filesize, 16), pad=True), "header": header}
                 yield CPIOData.get_subtype(**kwargs)
             else:
                 break
