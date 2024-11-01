@@ -30,7 +30,7 @@ class CPIOData:
         if relative is True:
             relative = path
 
-        if relative is not False:
+        if relative:  # If it's not false, none, or an empty string
             relative = Path(relative).resolve()
 
         if relative:
