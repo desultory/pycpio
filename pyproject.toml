@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pycpio"
 version = "1.4.2"
+
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
 ]
