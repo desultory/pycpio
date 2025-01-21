@@ -140,6 +140,10 @@ class TestCpio(TestCase):
             for attr, value in header_data.items():
                 self.assertEqual(getattr(test_header, attr), value)
 
+    def test_invalid_symlink_target(self):
+        test_symlink = Path(self.workdir.name) / 'test_symlink'
+        test_symlink.symlink_to('/a/totally/nonexistent/path')
+        self.cpio.append_recursive(self.workdir.name)
 
 if __name__ == '__main__':
     main()

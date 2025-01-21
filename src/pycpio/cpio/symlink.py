@@ -27,7 +27,10 @@ class CPIO_Symlink(CPIOData):
             if kwargs.get("recursive", False):
                 symlink_path = symlink_path.lstrip("/")
             self.data = symlink_path.encode("ascii")
-            self.header.mtime = path.stat().st_mtime
+            try:
+                self.header.mtime = path.stat().st_mtime
+            except FileNotFoundError:
+                self.header.mtime = 0  # default to 0 if file not found
         elif self.data is None:
             raise ValueError("path must be specified for symlinks")
 

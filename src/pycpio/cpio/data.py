@@ -58,7 +58,7 @@ class CPIOData:
         return data
 
     @staticmethod
-    def from_path(path: Path, relative=False, *args, **kwargs):
+    def from_path(path: Path, relative=False, resolve_symlink=False, *args, **kwargs):
         """
         Create a CPIOData object from a path.
         If a name is provided, it will be used instead of the resolved path.
@@ -101,15 +101,14 @@ class CPIOData:
         if not kwargs.pop("absolute", False):
             kwargs["name"] = kwargs["name"].lstrip("/")
 
-        # Get the inode number from the path
-        kwargs["ino"] = path.stat().st_ino
-
         # Get the mode type from the supplied path
         kwargs["mode"] = mode_bytes_from_path(path)
 
-        # Use the path's uid and gid if not provided
-        kwargs["uid"] = kwargs.pop("uid", path.stat().st_uid)
-        kwargs["gid"] = kwargs.pop("gid", path.stat().st_gid)
+        for stat in ("ino", "uid", "gid"):
+            try:  # Try to get the stat from the kwargs, otherwise, get it from the path
+                kwargs[stat] = kwargs.pop(stat, getattr(path.stat(), f"st_{stat}"))
+            except FileNotFoundError:
+                kwargs[stat] = 0  # If the symlink target doesn't exist, set the stat to 0
 
         header = CPIOHeader(*args, **kwargs)
         data = CPIOData.get_subtype(b"", header, *args, **kwargs)
