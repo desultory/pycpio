@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pycpio.header import HEADER_NEW, CPIOHeader
 from zenlib.logging import loggify
+from zenlib.util import colorize
 
 
 @loggify
@@ -71,4 +72,4 @@ class CPIOWriter:
             else:
                 self.logger.warning("File not fsynced, data may not be written to disk: %s" % self.output_file)
 
-        self.logger.info("Wrote %.2f MiB to: %s" % (len(data) / (2**20), self.output_file))
+        self.logger.info("Wrote %.2f MiB to: %s" % (len(data) / (2**20), colorize(self.output_file, "green")))
