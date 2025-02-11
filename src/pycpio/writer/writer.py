@@ -55,6 +55,11 @@ class CPIOWriter:
 
             self.logger.info("XZ compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2**20)))
             data = lzma.compress(data, check=self.xz_crc)
+        elif self.compression == "zstd":
+            import zstd
+
+            self.logger.info("ZSTD compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2**20)))
+            data = zstd.compress(data, 10)
         elif self.compression is not False:
             raise NotImplementedError("Compression type not supported: %s" % self.compression)
         return data
