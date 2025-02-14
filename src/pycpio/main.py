@@ -5,6 +5,7 @@ from pathlib import Path
 from zenlib.util import get_kwargs
 
 from pycpio import PyCPIO
+from pycpio.errors import UnavailableCompression
 
 
 def main():
@@ -76,7 +77,11 @@ def main():
 
     if output_file := kwargs.get("output"):
         compression = kwargs.get("compress")
-        c.write_cpio_file(Path(output_file), compression=compression)
+        try:
+            c.write_cpio_file(Path(output_file), compression=compression)
+        except UnavailableCompression as e:
+            c.logger.critical(e)
+            exit(1)
 
     if kwargs.get("list"):
         print(c.list_files())
