@@ -1,0 +1,2 @@
+class UnavailableCompression(Exception):
+    pass

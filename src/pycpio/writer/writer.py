@@ -3,6 +3,7 @@ from os import fsync
 from pathlib import Path
 
 from pycpio.header import HEADER_NEW, CPIOHeader
+from pycpio.errors import UnavailableCompression
 from zenlib.logging import loggify
 from zenlib.util import colorize
 
@@ -61,7 +62,7 @@ class CPIOWriter:
             compression_module = "zstd.compress"
             compression_args = (self.compression_level,)
         elif self.compression is not False:
-            raise NotImplementedError("Compression type not supported: %s" % self.compression)
+            raise UnavailableCompression("Compression type not supported: %s" % self.compression)
         else:
             self.logger.info("No compression specified, writing uncompressed data.")
             return data
@@ -75,7 +76,7 @@ class CPIOWriter:
             compressor = getattr(__import__(module), func)
             self.logger.debug("Compressing data with: %s" % compression_module)
         except ImportError as e:
-            raise ImportError("Failed to import compression module: %s" % compression_module) from e
+            raise UnavailableCompression("Failed to import compression module: %s" % compression_module) from e
 
         self.logger.info(
             "[%s] Compressing the CPIO data, original size: %.2f MiB" % (self.compression.upper(), len(data) / (2**20))
