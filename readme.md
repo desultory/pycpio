@@ -6,7 +6,9 @@
 
 A library for creating CPIO files in Python.
 
-Currently, the library only supports the New ASCII format, and xz compression
+Currently, the library only supports the New ASCII format.
+
+xz compression and zstd compression types are suppored.
 
 This library is primary designed for use in [ugrd](https://github.com/desultory/ugrd) to create CPIO archives for use in initramfs.
 

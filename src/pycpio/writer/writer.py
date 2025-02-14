@@ -20,6 +20,7 @@ class CPIOWriter:
         output_file: Path,
         structure=None,
         compression=False,
+        compression_level=10,
         xz_crc=CHECK_CRC32,
         *args,
         **kwargs,
@@ -30,6 +31,7 @@ class CPIOWriter:
         self.structure = structure if structure is not None else HEADER_NEW
 
         self.compression = compression or False
+        self.compression_level = compression_level or 10
         if isinstance(compression, str):
             compression = compression.lower()
             if compression == "true":
@@ -50,18 +52,36 @@ class CPIOWriter:
 
     def compress(self, data):
         """Attempts to compress the data using the specified compression type."""
+        compression_kwargs = {}
+        compression_args = ()
         if self.compression == "xz" or self.compression is True:
-            import lzma
-
-            self.logger.info("XZ compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2**20)))
-            data = lzma.compress(data, check=self.xz_crc)
+            compression_module = "lzma.compress"
+            compression_kwargs["check"] = self.xz_crc
         elif self.compression == "zstd":
-            import zstd
-
-            self.logger.info("ZSTD compressing the CPIO data, original size: %.2f MiB" % (len(data) / (2**20)))
-            data = zstd.compress(data, 10)
+            compression_module = "zstd.compress"
+            compression_args = (self.compression_level,)
         elif self.compression is not False:
             raise NotImplementedError("Compression type not supported: %s" % self.compression)
+        else:
+            self.logger.info("No compression specified, writing uncompressed data.")
+            return data
+
+        try:
+            if "." in compression_module:
+                module, func = compression_module.rsplit(".", 1)
+            else:
+                module, func = compression_module, "compress"
+
+            compressor = getattr(__import__(module), func)
+            self.logger.debug("Compressing data with: %s" % compression_module)
+        except ImportError as e:
+            raise ImportError("Failed to import compression module: %s" % compression_module) from e
+
+        self.logger.info(
+            "[%s] Compressing the CPIO data, original size: %.2f MiB" % (self.compression.upper(), len(data) / (2**20))
+        )
+        data = compressor(data, *compression_args, **compression_kwargs)
+
         return data
 
     def write(self, safe_write=True):
