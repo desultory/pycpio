@@ -59,7 +59,7 @@ class CPIOWriter:
             compression_module = "lzma.compress"
             compression_kwargs["check"] = self.xz_crc
         elif self.compression == "zstd":
-            compression_module = "zstd.compress"
+            compression_module = "zstandard.compress"
             compression_args = (self.compression_level,)
         elif self.compression is not False:
             raise UnavailableCompression("Compression type not supported: %s" % self.compression)
