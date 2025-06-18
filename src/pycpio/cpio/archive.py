@@ -55,6 +55,7 @@ class CPIOArchive(dict):
         if it's a hardlink, remove the data in the copy.
         """
         if entry.header.ino in self.inodes:
+            self.logger.log(5, "[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
             if isinstance(entry, CPIO_File) and self[self.inodes[entry.header.ino][0]].data == entry.data:
                 self.logger.info("[%s] New hardlink detected, removing data." % entry.header.name)
                 # Remove the data from the current entry
