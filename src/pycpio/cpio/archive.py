@@ -50,38 +50,42 @@ class CPIOArchive(dict):
         self._update_nlinks(value)
 
     def _update_inodes(self, entry):
+        """ Checks if an entry exists with the same inode.
+
+        If the inode exists and has entries, check if the data matches.
+            If it does, it's a hardlink - update the inode list and remove the data.
+        If it's a file but has no data, treat it as a hardlink and continue.
+        Otherwise, if the inode exists but the data doesn't match, generate a new inode.
+
+        Adds the updated entry to the inode list.
         """
-        Checks if an entry exists with the same inode,
-        if it's a hardlink, remove the data in the copy.
-        """
-        if entry.header.ino in self.inodes:
+        if entry_inodes := self.inodes.get(entry.header.ino, []):
             self.logger.log(5, "[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
+
             # For regular files, check if the existing entry has the same data, if so, clear it before making a hardlink
-            if isinstance(entry, CPIO_File) and self[self.inodes[entry.header.ino][0]].data == entry.data:
+            if isinstance(entry, CPIO_File) and self[entry_inodes[0]].data == entry.data:
                 self.logger.info("[%s] New hardlink detected, removing data." % entry.header.name)
-                # Remove the data from the current entry
+                # Remove the data from the current entry, as it now links to an existing entry
                 entry.data = b""
             # If it's a file, but has no data, it's already a hardlink
             elif isinstance(entry, CPIO_File) and entry.data == b"":
+                # No need to do anything, it's already a hardlink and has no data
                 self.logger.debug("[%s] Hardlink detected." % entry.header.name)
-            else:
+            else:  # If there is a collision, generate a new inode
                 from .common import get_new_inode
 
                 if entry.header.ino == 0 and not self.reproducible:  # Warn for another inode of 0 for non-reproducible archives
                     self.logger.warning("[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
 
-                old_inode = entry.header.ino
                 entry.header.ino = get_new_inode(self.inodes)
                 if self.reproducible:
                     self.logger.debug("[%s] Inode recalculated: %s" % (entry.header.name, entry.header.ino))
                 else:
                     self.logger.info("[%s] New inode: %s" % (entry.header.name, entry.header.ino))
-                # Create a new inode entry, clear the old one if it's empty
-                self.inodes[entry.header.ino] = []
-                if len(self.inodes[old_inode]) == 0:
-                    del self.inodes[old_inode]
-        else:
+
+        if entry.header.ino not in self.inodes:
             self.inodes[entry.header.ino] = []
+
         self.inodes[entry.header.ino].append(entry.header.name)
 
     def _update_nlinks(self, entry):
