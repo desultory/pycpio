@@ -3,6 +3,7 @@ from unittest import TestCase, main
 from uuid import uuid4
 
 from pycpio import PyCPIO
+from pycpio.errors import UnavailableCompression
 from zenlib.logging import loggify
 
 
@@ -71,7 +72,10 @@ class TestCpio(TestCase):
         self.make_test_files(100)
         self.cpio.append_recursive(self.workdir.name)
         out_file = NamedTemporaryFile()
-        self.cpio.write_cpio_file(out_file.file.name, compression="zstd")
+        try:
+            self.cpio.write_cpio_file(out_file.file.name, compression="zstd")
+        except UnavailableCompression as e:
+            self.skipTest(f"Zstandard compression is not available in this environment: {e}")
         out_file.file.flush()
 
 
