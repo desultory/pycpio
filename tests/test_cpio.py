@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from pycpio import PyCPIO
 from pycpio.header import CPIOHeader
+from pycpio.cpio import CPIOData
 from zenlib.logging import loggify
 
 from cpio_test_headers import newc_test_headers, build_newc_header
@@ -144,6 +145,12 @@ class TestCpio(TestCase):
         test_symlink = Path(self.workdir.name) / 'test_symlink'
         test_symlink.symlink_to('/a/totally/nonexistent/path')
         self.cpio.append_recursive(self.workdir.name)
+
+    def test_large_inode(self):
+        """ Tests handling of inode numbers larger than 0xFFFFFFFF """
+        entry = CPIOData.create_entry('large_inode_test', inode=0x1FFFFFFFF, logger=self.logger)
+        # Should be reset to 0
+        self.assertEqual(entry.header.ino, b'00000000')
 
 if __name__ == '__main__':
     main()

@@ -62,6 +62,8 @@ class CPIOHeader:
         If the filesize changes, log a warning.
 
         Check the mode and set the mode_type and permissions attributes accordingly.
+        Check that the inode is < 0xFFFFFFFF, if not, set to 0 and log a warning.
+            When used in an archive, the inode will be set to a unique value.
         If setting the name, add a null byte to the end and set the namesize attribute.
         """
         if key in ["uid", "gid"] and not isinstance(value, bytes):
@@ -97,6 +99,10 @@ class CPIOHeader:
         elif key == "filesize" and value == b"00000000":
             if getattr(self, "filesize", b"00000000") != b"00000000":
                 self.logger.warning("[%s] Setting filesize to 0" % self.name)
+        elif key == "ino":
+            if int(value, 16) > 0xFFFFFFFF:
+                self.logger.warning("Inode too large, setting to 0: %s" % value)
+                value = b"00000000"
 
         super().__setattr__(key, value)
 
