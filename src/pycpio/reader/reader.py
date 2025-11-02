@@ -17,7 +17,13 @@ class CPIOReader:
 
     def __init__(self, input_file: Union[Path, str], overrides={}, *args, **kwargs):
         self.file_path = Path(input_file)
-        assert self.file_path.exists(), "File does not exist: %s" % self.file_path
+
+        if self.file_path == Path('-'):
+            # stdin
+            self.file_path = 0
+        else:
+            # normal file
+            assert self.file_path.exists(), "File does not exist: %s" % self.file_path
 
         self.overrides = overrides
         self.entries = CPIOArchive(logger=self.logger)
