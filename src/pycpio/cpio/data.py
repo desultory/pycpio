@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pycpio.masks import mode_bytes_from_path
@@ -109,6 +110,9 @@ class CPIOData:
                 kwargs[stat] = kwargs.pop(stat, getattr(path.stat(), f"st_{stat}"))
             except FileNotFoundError:
                 kwargs[stat] = 0  # If the symlink target doesn't exist, set the stat to 0
+
+        kwargs["rdevmajor"] = kwargs.pop("rdevmajor", os.major(path.stat(follow_symlinks=resolve_symlink).st_rdev))
+        kwargs["rdevminor"] = kwargs.pop("rdevminor", os.minor(path.stat(follow_symlinks=resolve_symlink).st_rdev))
 
         header = CPIOHeader(*args, **kwargs)
         data = CPIOData.get_subtype(b"", header, *args, **kwargs)
