@@ -1,3 +1,10 @@
+from datetime import datetime
+from grp import getgrnam
+from pwd import getpwnam
+
+from pycpio.cpio.common import pad_cpio
+from pycpio.header.header_funcs import get_header_from_magic, get_magic_from_header
+from pycpio.header.headers import HEADER_NEW
 from pycpio.masks import print_permissions, resolve_mode_bytes, resolve_permissions
 from zenlib.logging import loggify
 
@@ -23,9 +30,6 @@ class CPIOHeader:
 
     def from_args(self, *args, **kwargs) -> None:
         """Initialize the object from the arguments."""
-        from .header_funcs import get_magic_from_header
-        from .headers import HEADER_NEW
-
         self.structure = kwargs.pop("structure", HEADER_NEW)
         self.name = kwargs.pop("name")
 
@@ -70,9 +74,6 @@ class CPIOHeader:
             try:
                 value = int(value)
             except ValueError:
-                from grp import getgrnam
-                from pwd import getpwnam
-
                 if key == "uid":
                     value = getpwnam(value).pw_uid
                 elif key == "gid":
@@ -157,7 +158,6 @@ class CPIOHeader:
         Parse the data according to the structure.
         Sets attributes on the object.
         """
-        from .header_funcs import get_header_from_magic
 
         self.structure = get_header_from_magic(self.data[:6])
         for key, length in self.structure.items():
@@ -182,7 +182,6 @@ class CPIOHeader:
 
     def __bytes__(self):
         """Returns the bytes representation of the object."""
-        from pycpio.cpio import pad_cpio
 
         out_bytes = b""
         # Get the bytes for each attribute
@@ -197,7 +196,6 @@ class CPIOHeader:
 
     def __str__(self):
         """Returns a string representation of the object."""
-        from datetime import datetime
 
         out_str = f"[{int(self.ino, 16)}] "
         out_str += "Header:\n" if not hasattr(self, "name") else f"{self.name}:\n"

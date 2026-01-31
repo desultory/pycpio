@@ -5,19 +5,17 @@ Handles hardlinks and symlinks.
 Normalizes names to be relative to the archive root without changing the header.
 """
 
+from pycpio.cpio.common import get_new_inode
+from pycpio.cpio.data import CPIOData
+from pycpio.cpio.file import CPIO_File
+from pycpio.cpio.symlink import CPIO_Symlink
+from pycpio.header import HEADER_NEW
 from zenlib.logging import loggify
 from zenlib.util import handle_plural
-
-from .file import CPIO_File
-from .symlink import CPIO_Symlink
 
 
 @loggify
 class CPIOArchive(dict):
-    from pycpio.header import HEADER_NEW
-
-    from .data import CPIOData
-
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError("Entry already exists: %s" % name)
@@ -50,7 +48,7 @@ class CPIOArchive(dict):
         self._update_nlinks(value)
 
     def _update_inodes(self, entry):
-        """ Checks if an entry exists with the same inode.
+        """Checks if an entry exists with the same inode.
 
         If the inode exists and has entries, check if the data matches.
             If it does, it's a hardlink - update the inode list and remove the data.
@@ -72,9 +70,9 @@ class CPIOArchive(dict):
                 # No need to do anything, it's already a hardlink and has no data
                 self.logger.debug("[%s] Hardlink detected." % entry.header.name)
             else:  # If there is a collision, generate a new inode
-                from .common import get_new_inode
-
-                if entry.header.ino == 0 and not self.reproducible:  # Warn for another inode of 0 for non-reproducible archives
+                if (
+                    entry.header.ino == 0 and not self.reproducible
+                ):  # Warn for another inode of 0 for non-reproducible archives
                     self.logger.warning("[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
 
                 entry.header.ino = get_new_inode(self.inodes)

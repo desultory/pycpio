@@ -1,5 +1,5 @@
-from .permissions import Permissions, print_permissions, resolve_permissions
-from .modes import CPIOModes, resolve_mode_bytes, mode_bytes_from_path
+from pycpio.masks.permissions import Permissions, print_permissions, resolve_permissions
+from pycpio.masks.modes import CPIOModes, resolve_mode_bytes, mode_bytes_from_path
 
 __all__ = [Permissions, print_permissions, resolve_permissions,
            CPIOModes, resolve_mode_bytes, mode_bytes_from_path]

@@ -1,6 +1,6 @@
 """CPIO header definitions and parsing."""
 
-from .headers import HEADER_NEW
+from pycpio.header.headers import HEADER_NEW
 
 lookup_table = {b"070701": HEADER_NEW}
 
