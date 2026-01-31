@@ -1,4 +1,4 @@
-from .data import CPIOData
+from pycpio.cpio.data import CPIOData
 
 
 class CPIO_Dir(CPIOData):

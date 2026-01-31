@@ -1,6 +1,10 @@
 import os
+from hashlib import sha256
 from pathlib import Path
+from time import time
 
+from pycpio.cpio.common import pad_cpio
+from pycpio.header import CPIOHeader
 from pycpio.masks import mode_bytes_from_path
 from zenlib.logging import loggify
 
@@ -70,7 +74,6 @@ class CPIOData:
 
         If absolute is set, the path is _allowed_ to be absolute, otherwise, the leading slash will be stripped.
         """
-        from pycpio.header import CPIOHeader
 
         path = Path(path)
         if logger := kwargs.get("logger"):
@@ -128,9 +131,6 @@ class CPIOData:
         Create a custom CPIO entry using names and args which are parsed by the header.
         Using the created header, the data type is determined and the appropriate object is returned.
         """
-        from time import time
-
-        from pycpio.header import CPIOHeader
 
         if logger := kwargs.get("logger"):
             logger.debug(f"Creating CPIO entry: {name}")
@@ -149,10 +149,10 @@ class CPIOData:
     def get_subtype(data: bytes, header, *args, **kwargs):
         """Get the appropriate subtype for the data based on the header mode type."""
         # Imports must be here so the module can be imported
-        from .chardev import CPIO_CharDev
-        from .dir import CPIO_Dir
-        from .file import CPIO_File
-        from .symlink import CPIO_Symlink
+        from pycpio.cpio.chardev import CPIO_CharDev
+        from pycpio.cpio.dir import CPIO_Dir
+        from pycpio.cpio.file import CPIO_File
+        from pycpio.cpio.symlink import CPIO_Symlink
 
         mode = header.mode_type
         logger = header.logger
@@ -182,8 +182,6 @@ class CPIOData:
         super().__setattr__(name, value)
         if name == "data":
             if value:
-                from hashlib import sha256
-
                 self.hash = sha256(value).hexdigest()
             self.header.filesize = len(value)
 
@@ -199,7 +197,6 @@ class CPIOData:
 
     def __bytes__(self):
         """Convert the data to bytes"""
-        from pycpio.cpio import pad_cpio
 
         payload = bytes(self.header) + self.data
         return payload + b"\x00" * pad_cpio(len(payload))

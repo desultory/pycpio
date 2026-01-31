@@ -1,5 +1,13 @@
+from datetime import datetime
+from grp import getgrnam
+from pwd import getpwnam
+
+from pycpio.cpio.common import pad_cpio
+from pycpio.header.header_funcs import get_header_from_magic, get_magic_from_header
+from pycpio.header.headers import HEADER_NEW
 from pycpio.masks import print_permissions, resolve_mode_bytes, resolve_permissions
 from zenlib.logging import loggify
+from zenlib.util import colorize as c_
 
 
 @loggify
@@ -23,9 +31,6 @@ class CPIOHeader:
 
     def from_args(self, *args, **kwargs) -> None:
         """Initialize the object from the arguments."""
-        from .header_funcs import get_magic_from_header
-        from .headers import HEADER_NEW
-
         self.structure = kwargs.pop("structure", HEADER_NEW)
         self.name = kwargs.pop("name")
 
@@ -70,9 +75,6 @@ class CPIOHeader:
             try:
                 value = int(value)
             except ValueError:
-                from grp import getgrnam
-                from pwd import getpwnam
-
                 if key == "uid":
                     value = getpwnam(value).pw_uid
                 elif key == "gid":
@@ -93,12 +95,15 @@ class CPIOHeader:
             value = value.encode("ascii")
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
 
+        # Log a warning if the filesize value changes and was not 0 before
         if key == "filesize" and value != b"00000000":
             if getattr(self, "filesize", b"00000000").lower() not in [value, b"00000000"]:
-                self.logger.warning("[%s] Changed filesize: %s -> %s" % (self.name, self.filesize, value))
+                self.logger.warning(f"[{c_(self.name, 'blue')}] Changed filesize: {c_(self.filesize, 'yellow')} -> {c_(value, 'green')}")
+        # Log a warning if the filesizes is set and is being cleared to 0, likely for a hardlink
         elif key == "filesize" and value == b"00000000":
             if getattr(self, "filesize", b"00000000") != b"00000000":
-                self.logger.warning("[%s] Setting filesize to 0" % self.name)
+                self.logger.info(f"[{c_(self.name, 'yellow')}] Setting filesize to 0")
+        # Log a warning if the inode is too large and must be set to 0 (to be recalculated if in an archive)
         elif key == "ino":
             if int(value, 16) > 0xFFFFFFFF:
                 self.logger.warning("Inode too large, setting to 0: %s" % value)
@@ -157,7 +162,6 @@ class CPIOHeader:
         Parse the data according to the structure.
         Sets attributes on the object.
         """
-        from .header_funcs import get_header_from_magic
 
         self.structure = get_header_from_magic(self.data[:6])
         for key, length in self.structure.items():
@@ -182,7 +186,6 @@ class CPIOHeader:
 
     def __bytes__(self):
         """Returns the bytes representation of the object."""
-        from pycpio.cpio import pad_cpio
 
         out_bytes = b""
         # Get the bytes for each attribute
@@ -197,7 +200,6 @@ class CPIOHeader:
 
     def __str__(self):
         """Returns a string representation of the object."""
-        from datetime import datetime
 
         out_str = f"[{int(self.ino, 16)}] "
         out_str += "Header:\n" if not hasattr(self, "name") else f"{self.name}:\n"
