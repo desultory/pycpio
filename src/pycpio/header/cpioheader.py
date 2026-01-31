@@ -7,6 +7,7 @@ from pycpio.header.header_funcs import get_header_from_magic, get_magic_from_hea
 from pycpio.header.headers import HEADER_NEW
 from pycpio.masks import print_permissions, resolve_mode_bytes, resolve_permissions
 from zenlib.logging import loggify
+from zenlib.util import colorize as c_
 
 
 @loggify
@@ -94,12 +95,15 @@ class CPIOHeader:
             value = value.encode("ascii")
             self.logger.debug("[%s] %d bytes: %s" % (key, length, value))
 
+        # Log a warning if the filesize value changes and was not 0 before
         if key == "filesize" and value != b"00000000":
             if getattr(self, "filesize", b"00000000").lower() not in [value, b"00000000"]:
-                self.logger.warning("[%s] Changed filesize: %s -> %s" % (self.name, self.filesize, value))
+                self.logger.warning(f"[{c_(self.name, 'blue')}] Changed filesize: {c_(self.filesize, 'yellow')} -> {c_(value, 'green')}")
+        # Log a warning if the filesizes is set and is being cleared to 0, likely for a hardlink
         elif key == "filesize" and value == b"00000000":
             if getattr(self, "filesize", b"00000000") != b"00000000":
-                self.logger.warning("[%s] Setting filesize to 0" % self.name)
+                self.logger.info(f"[{c_(self.name, 'yellow')}] Setting filesize to 0")
+        # Log a warning if the inode is too large and must be set to 0 (to be recalculated if in an archive)
         elif key == "ino":
             if int(value, 16) > 0xFFFFFFFF:
                 self.logger.warning("Inode too large, setting to 0: %s" % value)

@@ -11,6 +11,7 @@ from pycpio.cpio.file import CPIO_File
 from pycpio.cpio.symlink import CPIO_Symlink
 from pycpio.header import HEADER_NEW
 from zenlib.logging import loggify
+from zenlib.util import colorize as c_
 from zenlib.util import handle_plural
 
 
@@ -18,9 +19,9 @@ from zenlib.util import handle_plural
 class CPIOArchive(dict):
     def __setitem__(self, name, value):
         if name in self:
-            raise AttributeError("Entry already exists: %s" % name)
+            raise AttributeError(f"Entry already exists: {c_(name, 'red')}")
         if name != value.header.name:
-            self.logger.warning("Name mismatch: %s != %s" % (name, value.header.name))
+            self.logger.warning(f"Name mismatch: {c_(name, 'green')} != {c_(value.header.name, 'yellow')}")
             name = value.header.name
         # If reproduceable is enabled, set the inode to 0, so it can be recalculated
         if self.reproducible:
@@ -32,14 +33,18 @@ class CPIOArchive(dict):
         # Check if the hash already exists and the data is not empty
         if value.hash in self.hashes and value.data != b"" and not isinstance(value, CPIO_Symlink):
             match = self[self.hashes[value.hash]]
-            self.logger.warning("[%s] Hash matches existing entry: %s" % (value.header.name, match.header.name))
+            self.logger.info(
+                f"[{c_(value.header.name, 'green')}] Hash matches existing entry: {c_(match.header.name, 'yellow')}"
+            )
             if match.data == value.data:
-                self.logger.info("[%s] New hardlink detected by hash match." % value.header.name)
+                self.logger.info(f"[{c_(value.header.name, 'blue')}] New hardlink detected by data match.")
                 self.inodes[value.header.ino].remove(value.header.name)  # Remove the name from the inode list
                 value.header.ino = match.header.ino
                 self._update_inodes(value)  # Update the inode list
             else:
-                raise ValueError("[%s] Hash collision detected!" % value.header.name)
+                raise ValueError(
+                    f"[{c_(value.header.name, 'red')}] Hash collision detected with different data: {c_(match.header.name, 'yellow')}"
+                )
         else:
             # Add the name to the hash table
             self.hashes[value.hash] = name
@@ -62,24 +67,30 @@ class CPIOArchive(dict):
 
             # For regular files, check if the existing entry has the same data, if so, clear it before making a hardlink
             if isinstance(entry, CPIO_File) and self[entry_inodes[0]].data == entry.data:
-                self.logger.info("[%s] New hardlink detected, removing data." % entry.header.name)
+                self.logger.info(f"[{c_(entry.header.name, 'blue')}] New hardlink detected, removing data.")
                 # Remove the data from the current entry, as it now links to an existing entry
                 entry.data = b""
             # If it's a file, but has no data, it's already a hardlink
             elif isinstance(entry, CPIO_File) and entry.data == b"":
                 # No need to do anything, it's already a hardlink and has no data
-                self.logger.debug("[%s] Hardlink detected." % entry.header.name)
+                self.logger.debug(f"[{c_(entry.header.name, 'blue')}] Existing hardlink detected, no data present.")
             else:  # If there is a collision, generate a new inode
                 if (
                     entry.header.ino == 0 and not self.reproducible
                 ):  # Warn for another inode of 0 for non-reproducible archives
-                    self.logger.warning("[%s] Inode already exists: %s" % (entry.header.name, entry.header.ino))
+                    self.logger.warning(
+                        f"[{c_(entry.header.name, 'yellow')}] Inode of 0 detected for non-reproducible archive."
+                    )
 
                 entry.header.ino = get_new_inode(self.inodes)
                 if self.reproducible:
-                    self.logger.debug("[%s] Inode recalculated: %s" % (entry.header.name, entry.header.ino))
+                    self.logger.debug(
+                        f"[{c_(entry.header.name, 'green')}] Inode recalculated: {c_(entry.header.ino, 'magenta')}"
+                    )
                 else:
-                    self.logger.info("[%s] New inode: %s" % (entry.header.name, entry.header.ino))
+                    self.logger.info(
+                        f"[{c_(entry.header.name, 'green')}] Inode collision detected, new inode assigned: {c_(entry.header.ino, 'magenta')}"
+                    )
 
         if entry.header.ino not in self.inodes:
             self.inodes[entry.header.ino] = []
@@ -133,7 +144,9 @@ class CPIOArchive(dict):
             # Remove the name from the inode list
             siblings.remove(normalized_name)
             self[siblings[0]].data = data
-            self.logger.info("[%s] Moved entry data to: %s" % (normalized_name, siblings[0]))
+            self.logger.info(
+                f"[{c_(normalized_name, 'green')}] Moved hardlink data to entry: {c_(siblings[0], 'blue')}"
+            )
             # Remove the name from the hash list
             del self.hashes[self[normalized_name].hash]
             # Update the nlink value for all entries with that inode
@@ -152,7 +165,7 @@ class CPIOArchive(dict):
         if self.reproducible:
             data.header.mtime = 0
         self[entry_name] = data
-        self.logger.debug("Added entry: %s", entry_name)
+        self.logger.debug(f"Added entry: {c_(entry_name, 'green')}")
 
     def __bytes__(self):
         """Return the archive as a byte string, packed with all the data."""
