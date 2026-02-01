@@ -10,10 +10,10 @@ def get_header_from_magic(magic: bytes) -> dict:
     for magic, header_type in lookup_table.items():
         if magic == magic:
             return header_type
-    raise ValueError("Unknown magic number: %s" % magic)
+    raise ValueError("Unknown magic number: %r" % magic)
 
 
-def get_magic_from_header(header: dict) -> dict:
+def get_magic_from_header(header: dict) -> bytes:
     """Return the magic number for the given header format."""
     for magic, header_type in lookup_table.items():
         if header_type == header:

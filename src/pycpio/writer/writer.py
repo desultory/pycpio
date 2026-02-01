@@ -1,6 +1,7 @@
 from lzma import CHECK_CRC32
 from os import fsync
 from pathlib import Path
+from typing import Union
 
 from pycpio.header import HEADER_NEW, CPIOHeader
 from pycpio.errors import UnavailableCompression
@@ -18,7 +19,7 @@ class CPIOWriter:
     def __init__(
         self,
         cpio_entries: list,
-        output_file: Path,
+        output_file: Union[str, Path],
         structure=None,
         compression=False,
         compression_level=10,

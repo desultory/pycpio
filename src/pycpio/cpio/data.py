@@ -44,22 +44,31 @@ class CPIOData:
             kwargs["name"] = str(path)
 
         data = []
-        data.append(CPIOData.from_path(path=path, relative=relative, *args, **kwargs))
+        top_kwargs = kwargs.copy()
+        top_kwargs["path"] = path
+        top_kwargs["relative"] = relative
+        data.append(CPIOData.from_path(*args, **top_kwargs))
         for child in path.iterdir():
+            child_kwargs = kwargs.copy()
+
             if parent:
                 child_path = parent / child
             else:
                 child_path = child
 
             if relative:
-                kwargs["name"] = str(child_path.relative_to(relative))
+                child_kwargs["name"] = str(child_path.relative_to(relative))
             else:
-                kwargs["name"] = str(child_path)
+                child_kwargs["name"] = str(child_path)
+
+            child_kwargs["path"] = child_path
+            child_kwargs["relative"] = relative
 
             if child.is_dir() and not child.is_symlink():
-                data.extend(CPIOData.from_dir(path=child_path, parent=parent, relative=relative, *args, **kwargs))
+                child_kwargs["parent"] = parent
+                data.extend(CPIOData.from_dir(*args, **child_kwargs))
             else:
-                data.append(CPIOData.from_path(path=child_path, relative=relative, *args, **kwargs))
+                data.append(CPIOData.from_path(*args, **child_kwargs))
         return data
 
     @staticmethod
@@ -92,7 +101,6 @@ class CPIOData:
             if not path.exists():
                 raise ValueError("Path does not exist: %s" % path)
 
-        kwargs["path"] = path
         # If a name is provided, use it, otherwise, use the path, if relative is provided, use the relative path
         if name := kwargs.pop("name", None):
             kwargs["name"] = name
@@ -118,7 +126,7 @@ class CPIOData:
         kwargs["rdevminor"] = kwargs.pop("rdevminor", os.minor(path.stat(follow_symlinks=resolve_symlink).st_rdev))
 
         header = CPIOHeader(*args, **kwargs)
-        data = CPIOData.get_subtype(b"", header, *args, **kwargs)
+        data = CPIOData.get_subtype(b"", header, path=path, *args, **kwargs)
 
         if logger := kwargs.get("logger"):
             logger.debug(f"Created CPIO entry from path: {data}")
