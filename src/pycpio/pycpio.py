@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 
-from zenlib.logging import loggify
+from zenlib.logging import LoggerMixIn
 
 from pycpio.cpio import CPIOArchive, CPIOData
 from pycpio.header import HEADER_NEW
@@ -10,11 +10,11 @@ from pycpio.reader import CPIOReader
 from pycpio.writer import CPIOWriter
 
 
-@loggify
-class PyCPIO:
+class PyCPIO(LoggerMixIn):
     """A class for using CPIO archives."""
 
     def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
+        self.init_logger(args, kwargs)
         self.structure = structure
         self.reproducible = reproducible
         self.overrides = {}
@@ -25,7 +25,7 @@ class PyCPIO:
                 self.logger.info("[%s] Setting override: %s" % (attr, value))
                 self.overrides[attr] = value
 
-    def append_cpio(self, path: Path, name: str = None, *args, **kwargs):
+    def append_cpio(self, path: Path, name: Union[str, None] = None, *args, **kwargs):
         """Appends a file or directory to the CPIO archive."""
         kwargs.update({"path": path, "structure": self.structure, "overrides": self.overrides, "logger": self.logger})
         if name:
@@ -47,9 +47,9 @@ class PyCPIO:
 
     def add_chardev(self, name: str, major: int, minor: int, *args, **kwargs):
         """Adds a character device to the CPIO archive."""
-        self._build_cpio_entry(
-            name=name, entry_type=CPIOModes["CharDev"].value, rdevmajor=major, rdevminor=minor, *args, **kwargs
-        )
+        kwargs["name"] = name
+        kwargs["entry_type"] = CPIOModes["CharDev"].value
+        self._build_cpio_entry(rdevmajor=major, rdevminor=minor, *args, **kwargs)
 
     def read_cpio_file(self, file_path: Path):
         """Creates a CPIOReader object and reads the file."""
@@ -67,7 +67,7 @@ class PyCPIO:
         """Returns a list of files in the CPIO archive."""
         return str(self.entries.list())
 
-    def _build_cpio_entry(self, name: str, entry_type: CPIOModes, data=None, *args, **kwargs):
+    def _build_cpio_entry(self, name: str, entry_type: int, data=None, *args, **kwargs):
         """Creates a CPIOData object and adds it to the CPIO archive."""
         overrides = self.overrides.copy()
         if mode := kwargs.pop("mode", None):

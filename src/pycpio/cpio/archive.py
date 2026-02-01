@@ -10,13 +10,12 @@ from pycpio.cpio.data import CPIOData
 from pycpio.cpio.file import CPIO_File
 from pycpio.cpio.symlink import CPIO_Symlink
 from pycpio.header import HEADER_NEW
-from zenlib.logging import loggify
+from zenlib.logging import LoggerMixIn
 from zenlib.util import colorize as c_
 from zenlib.util import handle_plural
 
 
-@loggify
-class CPIOArchive(dict):
+class CPIOArchive(dict, LoggerMixIn):
     def __setitem__(self, name, value):
         if name in self:
             raise AttributeError(f"Entry already exists: {c_(name, 'red')}")
@@ -115,6 +114,7 @@ class CPIOArchive(dict):
         return super().__getitem__(self._normalize_name(name))
 
     def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
+        self.init_logger(args, kwargs)
         self.structure = structure
         self.reproducible = reproducible
         self.inodes = {}

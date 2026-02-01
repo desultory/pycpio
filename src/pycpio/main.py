@@ -61,19 +61,6 @@ def main():
             raise ValueError("Character device requires minor number")
         c.add_chardev(chardev_path, major, minor)
 
-    if append_file := kwargs.get("append"):
-        cmdargs = {
-            "relative": kwargs.get("relative"),
-            "path": Path(append_file),
-            "name": kwargs.get("name"),
-            "absolute": kwargs.get("absolute"),
-        }
-
-        c.append_cpio(**cmdargs)
-
-    if recursive_path := kwargs.get("recursive"):
-        cmdargs = {"relative": kwargs.get("relative"), "path": Path(recursive_path)}
-        c.append_recursive(**cmdargs)
 
     if output_file := kwargs.get("output"):
         compression = kwargs.get("compress")

@@ -3,12 +3,12 @@
 MAX_INODES = 0xFFFFFFFF
 
 
-def pad_cpio(size, align=4):
+def pad_cpio(size: int, align: int = 4):
     """Pad size to align bytes."""
     return ((size + align - 1) & ~(align - 1)) - size
 
 
-def get_new_inode(existing_inodes):
+def get_new_inode(existing_inodes: dict[str, list[int]]):
     """Get a new inode number."""
     if not existing_inodes:
         return 1

@@ -6,15 +6,15 @@ from pycpio.cpio.common import pad_cpio
 from pycpio.header.header_funcs import get_header_from_magic, get_magic_from_header
 from pycpio.header.headers import HEADER_NEW
 from pycpio.masks import print_permissions, resolve_mode_bytes, resolve_permissions
-from zenlib.logging import loggify
+from zenlib.logging import LoggerMixIn
 from zenlib.util import colorize as c_
 
 
-@loggify
-class CPIOHeader:
+class CPIOHeader(LoggerMixIn):
     """CPIO HEADER, can be initialized from a segment of header data with or without a structure definition."""
 
     def __init__(self, header_data=b"", overrides={}, *args, **kwargs):
+        self.init_logger(args, kwargs)
         self.overrides = overrides
         if header_data:
             self.logger.debug("Creating CPIOEntry from header data: %s", header_data)
@@ -138,8 +138,9 @@ class CPIOHeader:
                 if hasattr(self, attribute):
                     self.logger.log(5, "[%s] Pre-override: %s" % (attribute, getattr(self, attribute)))
                 if attribute == "mode":
+                    mode = int(getattr(self, "mode", b"00000000"), 16)
                     # Mask the mode, then add the override
-                    value = (int(self.mode, 16) & 0o7777000) | (self.overrides[attribute] & 0o777)
+                    value = (mode & 0o7777000) | (self.overrides[attribute] & 0o777)
                 else:
                     value = self.overrides[attribute]
                 self.logger.debug("[%s] Setting override: %s" % (attribute, value))
@@ -148,13 +149,13 @@ class CPIOHeader:
     def _read_bytes(self, num_bytes: int) -> bytes:
         """Read the specified number of bytes from the data, incrementing the offset, then returning the data."""
         data = self.data[self.offset : self.offset + num_bytes]
-        self.logger.log(5, "Read %d bytes: %s" % (num_bytes, data))
+        self.logger.log(5, "Read %s bytes: %r" % (num_bytes, data))
         self.offset += num_bytes
         return data
 
     def add_data(self, data: bytes) -> None:
         """Add the file data to the object."""
-        self.logger.debug("Adding data: %s" % data)
+        self.logger.debug("Adding data: %r" % data)
         self.data += data
 
     def parse_header(self):

@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-
+from typing import Union
 
 class CPIOModes(Enum):
     """
@@ -16,9 +16,11 @@ class CPIOModes(Enum):
     FIFO = 0o010000  # FIFO
 
 
-def resolve_mode_bytes(mode: bytes) -> CPIOModes:
+def resolve_mode_bytes(mode: bytes) -> Union[CPIOModes, None]:
     """
     Resolve the mode mask from the given bytes.
+
+    If the mode is 0, return None (trailer).
     """
     mode_int = int(mode, 16)
     # Handle the trailer
@@ -29,14 +31,16 @@ def resolve_mode_bytes(mode: bytes) -> CPIOModes:
         if cpiomode.value & mode_int == cpiomode.value:
             return cpiomode
 
-    raise ValueError(f"Unknown mode: {mode}")
+    raise ValueError("Unknown mode: %r" % mode)
 
 
-def mode_bytes_from_path(file_path: Path) -> CPIOModes:
+def mode_bytes_from_path(file_path: Path) -> int:
     """
     Gets the mode type bytes from the given path.
     The order of the checks is important,
     as some types are subsets of others.
+
+    returns the integer value of the mode.
     """
     if file_path.is_symlink():
         return CPIOModes.Symlink.value
