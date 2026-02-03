@@ -1,6 +1,7 @@
 """
 Collection of CPIOData objects.
-Handles duplicate inodes and hashes.
+Handles duplicate inodes
+optionally handles duplicate contentss.
 Handles hardlinks and symlinks.
 Normalizes names to be relative to the archive root without changing the header.
 """
@@ -29,8 +30,10 @@ class CPIOArchive(dict, LoggerMixIn):
         # Check if the inode already exists
         self._update_inodes(value)
 
+        if not self.dedup:
+            self.logger.debug(f"Deduplication disabled, skipping hash check for: {c_(value.header.name, 'green')}")
         # Check if the hash already exists and the data is not empty
-        if value.hash in self.hashes and value.data != b"" and not isinstance(value, CPIO_Symlink):
+        elif value.hash in self.hashes and value.data != b"" and not isinstance(value, CPIO_Symlink):
             match = self[self.hashes[value.hash]]
             self.logger.info(
                 f"[{c_(value.header.name, 'green')}] Hash matches existing entry: {c_(match.header.name, 'yellow')}"
@@ -113,8 +116,9 @@ class CPIOArchive(dict, LoggerMixIn):
         """Get an entry from the archive"""
         return super().__getitem__(self._normalize_name(name))
 
-    def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, reproducible=False, dedup=False, *args, **kwargs):
         self.init_logger(args, kwargs)
+        self.dedup = dedup
         self.structure = structure
         self.reproducible = reproducible
         self.inodes = {}
@@ -147,8 +151,10 @@ class CPIOArchive(dict, LoggerMixIn):
             self.logger.info(
                 f"[{c_(normalized_name, 'green')}] Moved hardlink data to entry: {c_(siblings[0], 'blue')}"
             )
-            # Remove the name from the hash list
-            del self.hashes[self[normalized_name].hash]
+            if self.dedup:
+                # Remove the name from the hash list
+                self.logger.debug(f"Removing tracked hash for popped entry: {c_(normalized_name, 'green')}")
+                del self.hashes[self[normalized_name].hash]
             # Update the nlink value for all entries with that inode
             self._update_nlinks(self[normalized_name])
 
