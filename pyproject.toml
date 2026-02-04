@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-dependencies = ["zenlib >= 3.0.2"]
+dependencies = ["zenlib >= 3.3.0"]
 
 [options.package_data]
 pycpio = "py.typed"
