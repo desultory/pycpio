@@ -12,14 +12,22 @@ from pycpio.writer import CPIOWriter
 
 class PyCPIO(LoggerMixIn):
     """A class for using CPIO archives."""
+    @property
+    def deduplicate(self):
+        return self._deduplicate
+
+    @deduplicate.setter
+    def deduplicate(self, value: bool):
+        self._deduplicate = value
+        self.entries.deduplicate = value
 
     def __init__(self, structure=HEADER_NEW, reproducible=False, deduplicate=False, *args, **kwargs):
         self.init_logger(args, kwargs)
         self.structure = structure
         self.reproducible = reproducible
-        self.deduplicate = deduplicate
         self.overrides = {}
         self.entries = CPIOArchive(self.structure, reproducible=reproducible, deduplicate=deduplicate, logger=self.logger)
+        self.deduplicate = deduplicate
 
         for attr in self.structure:
             if value := kwargs.pop(attr, None):
