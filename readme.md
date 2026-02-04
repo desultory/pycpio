@@ -10,7 +10,7 @@ Currently, the library only supports the New ASCII format.
 
 xz and zstd compression types are currently suppored.
 
-This library is primary designed for use in [ugrd](https://github.com/desultory/ugrd) to create CPIO archives for use in initramfs.
+This library is primary designed for use in [ugrd](https://github.com/desultory/ugrd) to create initramfs CPIO archives 
 
 ## Usage
 
@@ -33,6 +33,7 @@ This library is primary designed for use in [ugrd](https://github.com/desultory/
   --relative RELATIVE   append to archive relative to this path
   --absolute            allow absolute paths
   --reproducible        Set mtime to 0, start inodes at 0
+  --deduplicate         Make hardlinks for files with identical content
   --rm RM, --delete RM  delete from archive
   -n NAME, --name NAME  Name/path override for append
   -s SYMLINK, --symlink SYMLINK
@@ -69,4 +70,5 @@ This library is primary designed for use in [ugrd](https://github.com/desultory/
     - `chardev` : A character device
   * CPIO objects are collected in a `pycpio.cpio.archive` object
     - The archive handles duplication, inode generation, name normalization, and other collection related tasks
+
   * All CPIO object types can be initialized from args, bytes, or a file path
