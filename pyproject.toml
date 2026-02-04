@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pycpio"
-version = "1.6.1"
+version = "1.7.0"
 
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-dependencies = ["zenlib >= 3.0.2"]
+dependencies = ["zenlib >= 3.3.0"]
 
 [options.package_data]
 pycpio = "py.typed"
