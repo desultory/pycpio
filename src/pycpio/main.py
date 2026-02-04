@@ -15,7 +15,11 @@ def main():
         {"flags": ["--recursive"], "action": "store", "help": "append to archive recursively"},
         {"flags": ["--relative"], "action": "store", "help": "append to archive relative to this path"},
         {"flags": ["--absolute"], "action": "store_true", "help": "allow absolute paths"},
-        {"flags": ["--deduplicate"], "action": "store_true", "help": "deduplicate files (make hardlinks) when file contents match"},
+        {
+            "flags": ["--deduplicate"],
+            "action": "store_true",
+            "help": "deduplicate files (make hardlinks) when file contents match",
+        },
         {"flags": ["--reproducible"], "action": "store_true", "help": "Set mtime to 0, start inodes at 0"},
         {"flags": ["--rm", "--delete"], "action": "store", "help": "delete from archive"},
         {"flags": ["-n", "--name"], "action": "store", "help": "Name/path override for append"},
@@ -62,6 +66,17 @@ def main():
             raise ValueError("Character device requires minor number")
         c.add_chardev(chardev_path, major, minor)
 
+    if append_file := kwargs.get("append"):
+        cmdargs = {
+            "relative": kwargs.get("relative"),
+            "path": Path(append_file),
+            "name": kwargs.get("name"),
+            "absolute": kwargs.get("absolute"),
+        }
+        c.append_cpio(**cmdargs)
+    if recursive_path := kwargs.get("recursive"):
+        cmdargs = {"relative": kwargs.get("relative"), "path": Path(recursive_path)}
+        c.append_recursive(**cmdargs)
 
     if output_file := kwargs.get("output"):
         compression = kwargs.get("compress")
