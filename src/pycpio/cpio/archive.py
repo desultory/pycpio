@@ -30,7 +30,7 @@ class CPIOArchive(dict, LoggerMixIn):
         # Check if the inode already exists
         self._update_inodes(value)
 
-        if not self.dedup:
+        if not self.deduplicate:
             self.logger.debug(f"Deduplication disabled, skipping hash check for: {c_(value.header.name, 'green')}")
         # Check if the hash already exists and the data is not empty
         elif value.hash in self.hashes and value.data != b"" and not isinstance(value, CPIO_Symlink):
@@ -116,9 +116,9 @@ class CPIOArchive(dict, LoggerMixIn):
         """Get an entry from the archive"""
         return super().__getitem__(self._normalize_name(name))
 
-    def __init__(self, structure=HEADER_NEW, reproducible=False, dedup=False, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, reproducible=False, deduplicate=False, *args, **kwargs):
         self.init_logger(args, kwargs)
-        self.dedup = dedup
+        self.deduplicate = deduplicate
         self.structure = structure
         self.reproducible = reproducible
         self.inodes = {}
@@ -151,7 +151,7 @@ class CPIOArchive(dict, LoggerMixIn):
             self.logger.info(
                 f"[{c_(normalized_name, 'green')}] Moved hardlink data to entry: {c_(siblings[0], 'blue')}"
             )
-            if self.dedup:
+            if self.deduplicate:
                 # Remove the name from the hash list
                 self.logger.debug(f"Removing tracked hash for popped entry: {c_(normalized_name, 'green')}")
                 del self.hashes[self[normalized_name].hash]

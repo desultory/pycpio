@@ -13,12 +13,13 @@ from pycpio.writer import CPIOWriter
 class PyCPIO(LoggerMixIn):
     """A class for using CPIO archives."""
 
-    def __init__(self, structure=HEADER_NEW, reproducible=False, *args, **kwargs):
+    def __init__(self, structure=HEADER_NEW, reproducible=False, deduplicate=False, *args, **kwargs):
         self.init_logger(args, kwargs)
         self.structure = structure
         self.reproducible = reproducible
+        self.deduplicate = deduplicate
         self.overrides = {}
-        self.entries = CPIOArchive(self.structure, reproducible=reproducible, logger=self.logger)
+        self.entries = CPIOArchive(self.structure, reproducible=reproducible, deduplicate=deduplicate, logger=self.logger)
 
         for attr in self.structure:
             if value := kwargs.pop(attr, None):
