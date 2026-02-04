@@ -107,6 +107,7 @@ class TestCpio(TestCase):
 
     def test_dedup(self):
         self.make_test_files(10, data='test')
+        self.cpio.entries.deduplicate = True
         self.cpio.append_recursive(self.workdir.name)
         self.check_all_files()
         filename_lengths = sum([len(x) for x in self.cpio.entries])
