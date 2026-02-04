@@ -15,6 +15,7 @@ def main():
         {"flags": ["--recursive"], "action": "store", "help": "append to archive recursively"},
         {"flags": ["--relative"], "action": "store", "help": "append to archive relative to this path"},
         {"flags": ["--absolute"], "action": "store_true", "help": "allow absolute paths"},
+        {"flags": ["--deduplicate"], "action": "store_true", "help": "deduplicate files (make hardlinks) when file contents match"},
         {"flags": ["--reproducible"], "action": "store_true", "help": "Set mtime to 0, start inodes at 0"},
         {"flags": ["--rm", "--delete"], "action": "store", "help": "delete from archive"},
         {"flags": ["-n", "--name"], "action": "store", "help": "Name/path override for append"},
